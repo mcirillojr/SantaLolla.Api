@@ -34,7 +34,7 @@ namespace AlterVision.Api.Repositories
                         VENDEDOR
                     ) AS Nome,
 
-                    CPFCNPJ_VENDEDOR AS Cpf,
+                    NULLIF(CPFCNPJ_VENDEDOR, '') AS Cpf,
 
                     DESCRICAO_ATIVIDADE AS Cargo,
 
@@ -47,12 +47,14 @@ namespace AlterVision.Api.Repositories
                     LASTUPDATE_ORIGEM AS DataAtualizacao,
 
                     CASE 
-                        WHEN ATIVO = 1 THEN 'Ativo'
-                        ELSE 'Inativo'
+                        WHEN ISNULL(ATIVO, 0) = 0 THEN 'Inativo'
+                        WHEN DEMISSAO IS NOT NULL AND DEMISSAO <= CAST(GETDATE() AS DATE) THEN 'Inativo'
+                        ELSE 'Ativo'
                     END AS Status
 
                 FROM dbo.ALTERVISION_VENDEDORES
                 WHERE ISNULL(ATIVO, 1) = 1
+                  AND (DEMISSAO IS NULL OR DEMISSAO > CAST(GETDATE() AS DATE))
                 ORDER BY REDE,
                          ISNULL(NULLIF(EMPRESA_ACESSO, ''), EMPRESA),
                          CODVENDEDOR;
