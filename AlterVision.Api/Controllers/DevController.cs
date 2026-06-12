@@ -6,9 +6,21 @@ namespace AlterVision.Api.Controllers
     [Route("api/[controller]")]
     public class DevController : ControllerBase
     {
+        private readonly IWebHostEnvironment _environment;
+
+        public DevController(IWebHostEnvironment environment)
+        {
+            _environment = environment;
+        }
+
         [HttpGet("gerar-hash")]
         public IActionResult GerarHash([FromQuery] string secret)
         {
+            if (!_environment.IsDevelopment())
+            {
+                return NotFound();
+            }
+
             if (string.IsNullOrWhiteSpace(secret))
             {
                 return BadRequest(new

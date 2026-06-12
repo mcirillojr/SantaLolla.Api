@@ -11,22 +11,30 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Controllers
 builder.Services.AddControllers();
 
+// Swagger / OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Configurações do appsettings.json
 builder.Services.Configure<AlterVisionSettings>(
     builder.Configuration.GetSection("AlterVisionSettings"));
 
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("JwtSettings"));
 
+// Infra / Data
 builder.Services.AddSingleton<SqlConnectionFactory>();
 
+// Repositories
 builder.Services.AddScoped<ITerceiroRepository, TerceiroRepository>();
+
+// Services
 builder.Services.AddScoped<ITokenService, TokenService>();
 
+// JWT
 var jwtSettings = builder.Configuration
     .GetSection("JwtSettings")
     .Get<JwtSettings>();
@@ -60,14 +68,21 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
+// Worker em background
 builder.Services.AddHostedService<AlterVisionWorker>();
 
 var app = builder.Build();
 
+// Swagger
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "AlterVision.Api v1");
+        options.RoutePrefix = "swagger";
+    });
 }
 
 app.UseHttpsRedirection();

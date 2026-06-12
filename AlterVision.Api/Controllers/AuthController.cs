@@ -30,5 +30,27 @@ namespace AlterVision.Api.Controllers
 
             return Ok(token);
         }
+
+        [HttpPost("token-form")]
+        public async Task<IActionResult> GerarTokenForm([FromForm] TokenFormRequest request)
+        {
+            var tokenRequest = new TokenRequest
+            {
+                ClientId = request.ClientId,
+                ClientSecret = request.ClientSecret
+            };
+
+            var token = await _tokenService.GerarTokenAsync(tokenRequest);
+
+            if (token == null)
+            {
+                return Unauthorized(new
+                {
+                    mensagem = "ClientId ou ClientSecret inválido."
+                });
+            }
+
+            return Ok(token);
+        }
     }
 }
