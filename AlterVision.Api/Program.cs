@@ -8,6 +8,8 @@ using AlterVision.Api.Workers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.OpenApi;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +18,15 @@ builder.Services.AddControllers();
 
 // Swagger / OpenAPI
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Santa Lolla Integração API",
+        Version = "v1",
+        Description = "API de integração para terceiros"
+    });
+});
 
 // Configurações do appsettings.json
 builder.Services.Configure<AlterVisionSettings>(
@@ -30,6 +40,8 @@ builder.Services.AddSingleton<SqlConnectionFactory>();
 
 // Repositories
 builder.Services.AddScoped<ITerceiroRepository, TerceiroRepository>();
+builder.Services.AddScoped<ILojaRepository, LojaRepository>();
+builder.Services.AddScoped<IVendedorRepository, VendedorRepository>();
 
 // Services
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -80,8 +92,9 @@ if (app.Environment.IsDevelopment())
 
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "AlterVision.Api v1");
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Santa Lolla Integração API v1");
         options.RoutePrefix = "swagger";
+        options.DocumentTitle = "Santa Lolla Integração API";
     });
 }
 

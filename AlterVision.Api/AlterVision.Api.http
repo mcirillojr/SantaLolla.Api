@@ -1,16 +1,37 @@
-# @AlterVision.Api_HostAddress = http://localhost:5036
+#@AlterVision.Api_HostAddress = http://localhost:5036
 
-# GET {{AlterVision.Api_HostAddress}}/weatherforecast/
-# Accept: application/json
-
+#GET {{AlterVision.Api_HostAddress}}/weatherforecast/
+#Accept: application/json
+##
 
 @AlterVision.Api_HostAddress = https://localhost:7073
 
 # Health com token
 GET {{AlterVision.Api_HostAddress}}/api/Health
 Accept: application/json
-#Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbHRlcnZpc2lvbiIsImlkX3RlcmNlaXJvIjoiMSIsIm5vbWUiOiJBbHRlclZpc2lvbkFwaSIsImNsaWVudF9pZCI6ImFsdGVydmlzaW9uIiwiZXhwIjoxNzgxMjcxMTk2LCJpc3MiOiJBbHRlclZpc2lvbi5BcGkiLCJhdWQiOiJBbHRlclZpc2lvbi5UZXJjZWlyb3MifQ.H1xgOVNEGwSvLiHOOouEAhD7ZzBBbOs9g9YzwSz8Chg
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbHRlcnZpc2lvbiIsImlkX3RlcmNlaXJvIjoiMSIsIm5vbWUiOiJBbHRlclZpc2lvbkFwaSIsImNsaWVudF9pZCI6ImFsdGVydmlzaW9uIiwiZXhwIjoxNzgxMjgwMTQyLCJpc3MiOiJBbHRlclZpc2lvbi5BcGkiLCJhdWQiOiJBbHRlclZpc2lvbi5UZXJjZWlyb3MifQ.vKZ5hp0TpmWvymZj3oPfPHLPAYd5Ev3aukCTXNOKO3A
 
 
+@AlterVision.Api_HostAddress = https://localhost:7073
+
+### Listar lojas sem token - deve retornar 401
+GET {{AlterVision.Api_HostAddress}}/api/Lojas
+Accept: application/json
+
+
+### Listar lojas com token - deve retornar 200
+GET {{AlterVision.Api_HostAddress}}/api/Lojas
+Accept: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbHRlcnZpc2lvbiIsImlkX3RlcmNlaXJvIjoiMSIsIm5vbWUiOiJBbHRlclZpc2lvbkFwaSIsImNsaWVudF9pZCI6ImFsdGVydmlzaW9uIiwiZXhwIjoxNzgxMjgwMTQyLCJpc3MiOiJBbHRlclZpc2lvbi5BcGkiLCJhdWQiOiJBbHRlclZpc2lvbi5UZXJjZWlyb3MifQ.vKZ5hp0TpmWvymZj3oPfPHLPAYd5Ev3aukCTXNOKO3A
+
+### Listar vendedores sem token - deve retornar 401
+GET {{AlterVision.Api_HostAddress}}/api/Vendedores
+Accept: application/json
+
+
+### Listar vendedores com token - deve retornar 200
+GET {{AlterVision.Api_HostAddress}}/api/Vendedores
+Accept: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbHRlcnZpc2lvbiIsImlkX3RlcmNlaXJvIjoiMSIsIm5vbWUiOiJBbHRlclZpc2lvbkFwaSIsImNsaWVudF9pZCI6ImFsdGVydmlzaW9uIiwiZXhwIjoxNzgxMjgwMTQyLCJpc3MiOiJBbHRlclZpc2lvbi5BcGkiLCJhdWQiOiJBbHRlclZpc2lvbi5UZXJjZWlyb3MifQ.vKZ5hp0TpmWvymZj3oPfPHLPAYd5Ev3aukCTXNOKO3A
 
 ###
