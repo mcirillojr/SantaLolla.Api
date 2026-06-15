@@ -69,6 +69,7 @@ builder.Services.AddScoped<ITerceiroRepository, TerceiroRepository>();
 builder.Services.AddScoped<ILojaRepository, LojaRepository>();
 builder.Services.AddScoped<IVendedorRepository, VendedorRepository>();
 builder.Services.AddScoped<IVendaRepository, VendaRepository>();
+builder.Services.AddScoped<IEstoqueRepository, EstoqueRepository>();
 
 // Services
 builder.Services.AddScoped<ITokenService, TokenService>();
