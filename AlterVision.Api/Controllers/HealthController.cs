@@ -14,8 +14,8 @@ namespace AlterVision.Api.Controllers
             return Ok(new
             {
                 status = "OK",
-                sistema = "AlterVision.Api",
-                mensagem = "API AlterVision em execução",
+                sistema = "SantaLolla.Api",
+                mensagem = "API Santa Lolla em execução",
                 dataHora = DateTime.Now
             });
         }
