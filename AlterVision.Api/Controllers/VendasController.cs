@@ -17,7 +17,24 @@ namespace AlterVision.Api.Controllers
             _vendaRepository = vendaRepository;
         }
 
+        /// <summary>
+        /// Lista as vendas.
+        /// </summary>
+        /// <remarks>
+        /// Retorna vendas filtradas por data da venda, data de atualização, rede, loja e paginação.
+        /// 
+        /// É recomendado informar pelo menos um período:
+        /// dataInicio/dataFim ou lastUpdateInicio/lastUpdateFim.
+        /// </remarks>
+        /// <param name="filtro">Filtros para consulta de vendas.</param>
+        /// <returns>Lista de vendas.</returns>
+        /// <response code="200">Consulta realizada com sucesso.</response>
+        /// <response code="400">Filtro inválido ou período não informado.</response>
+        /// <response code="401">Token ausente, expirado ou inválido.</response>
         [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<VendaResponse>), StatusCodes.Status200OK)]
+        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Listar([FromQuery] VendaFiltroRequest filtro)
         {
             var informouDataVenda = filtro.DataInicio.HasValue || filtro.DataFim.HasValue;
@@ -31,7 +48,8 @@ namespace AlterVision.Api.Controllers
                 });
             }
 
-            if (filtro.DataInicio.HasValue && filtro.DataFim.HasValue &&
+            if (filtro.DataInicio.HasValue &&
+                filtro.DataFim.HasValue &&
                 filtro.DataInicio.Value.Date > filtro.DataFim.Value.Date)
             {
                 return BadRequest(new
@@ -40,7 +58,8 @@ namespace AlterVision.Api.Controllers
                 });
             }
 
-            if (filtro.LastUpdateInicio.HasValue && filtro.LastUpdateFim.HasValue &&
+            if (filtro.LastUpdateInicio.HasValue &&
+                filtro.LastUpdateFim.HasValue &&
                 filtro.LastUpdateInicio.Value > filtro.LastUpdateFim.Value)
             {
                 return BadRequest(new

@@ -1,35 +1,21 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace AlterVision.Api.Models.Vendas
+namespace AlterVision.Api.Models.Lojas
 {
     /// <summary>
-    /// Filtros para consulta de vendas.
+    /// Filtros para consulta de lojas.
     /// </summary>
-    public class VendaFiltroRequest
+    public class LojaFiltroRequest
     {
         /// <summary>
-        /// Data inicial da venda.
-        /// </summary>
-        /// <remarks>Exemplo: 2026-06-01</remarks>
-        [JsonPropertyName("dataInicio")]
-        public DateTime? DataInicio { get; set; }
-
-        /// <summary>
-        /// Data final da venda.
-        /// </summary>
-        /// <remarks>Exemplo: 2026-06-15</remarks>
-        [JsonPropertyName("dataFim")]
-        public DateTime? DataFim { get; set; }
-
-        /// <summary>
-        /// Data/hora inicial da última atualização da venda.
+        /// Data/hora inicial da última atualização.
         /// </summary>
         /// <remarks>Exemplo: 2026-06-11T00:00:00</remarks>
         [JsonPropertyName("lastUpdateInicio")]
         public DateTime? LastUpdateInicio { get; set; }
 
         /// <summary>
-        /// Data/hora final da última atualização da venda.
+        /// Data/hora final da última atualização.
         /// </summary>
         /// <remarks>Exemplo: 2026-06-15T23:59:59</remarks>
         [JsonPropertyName("lastUpdateFim")]

@@ -17,7 +17,21 @@ namespace AlterVision.Api.Controllers
             _vendedorRepository = vendedorRepository;
         }
 
+        /// <summary>
+        /// Lista os vendedores cadastrados.
+        /// </summary>
+        /// <remarks>
+        /// Permite filtrar vendedores por rede, loja, código do vendedor e período de atualização.
+        /// </remarks>
+        /// <param name="filtro">Filtros para consulta de vendedores.</param>
+        /// <returns>Lista de vendedores.</returns>
+        /// <response code="200">Consulta realizada com sucesso.</response>
+        /// <response code="400">Filtro inválido.</response>
+        /// <response code="401">Token ausente, expirado ou inválido.</response>
         [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<VendedorResponse>), StatusCodes.Status200OK)]
+        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Listar([FromQuery] VendedorFiltroRequest filtro)
         {
             if (filtro.LastUpdateInicio.HasValue &&
