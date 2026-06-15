@@ -14,8 +14,25 @@ namespace AlterVision.Api.Repositories
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<IEnumerable<VendedorResponse>> ListarAsync()
+        public async Task<IEnumerable<VendedorResponse>> ListarAsync(VendedorFiltroRequest filtro)
         {
+            if (filtro.Pagina <= 0)
+            {
+                filtro.Pagina = 1;
+            }
+
+            if (filtro.TamanhoPagina <= 0)
+            {
+                filtro.TamanhoPagina = 500;
+            }
+
+            if (filtro.TamanhoPagina > 5000)
+            {
+                filtro.TamanhoPagina = 5000;
+            }
+
+            var offset = (filtro.Pagina - 1) * filtro.TamanhoPagina;
+
             const string sql = @"
                 SELECT
                     REDE AS Rede,
@@ -55,14 +72,33 @@ namespace AlterVision.Api.Repositories
                 FROM dbo.ALTERVISION_VENDEDORES
                 WHERE ISNULL(ATIVO, 1) = 1
                   AND (DEMISSAO IS NULL OR DEMISSAO > CAST(GETDATE() AS DATE))
+                  AND (@LastUpdateInicio IS NULL OR LASTUPDATE_ORIGEM >= @LastUpdateInicio)
+                  AND (@LastUpdateFim IS NULL OR LASTUPDATE_ORIGEM <= @LastUpdateFim)
+                  AND (@Rede IS NULL OR REDE = @Rede)
+                  AND (@CodigoLoja IS NULL OR ISNULL(NULLIF(EMPRESA_ACESSO, ''), EMPRESA) = @CodigoLoja)
+                  AND (@CodigoVendedor IS NULL OR CODVENDEDOR = @CodigoVendedor)
                 ORDER BY REDE,
                          ISNULL(NULLIF(EMPRESA_ACESSO, ''), EMPRESA),
-                         CODVENDEDOR;
+                         CODVENDEDOR
+                OFFSET @Offset ROWS
+                FETCH NEXT @TamanhoPagina ROWS ONLY;
             ";
 
             using var connection = _connectionFactory.CreateConnection();
 
-            return await connection.QueryAsync<VendedorResponse>(sql);
+            return await connection.QueryAsync<VendedorResponse>(
+                sql,
+                new
+                {
+                    filtro.LastUpdateInicio,
+                    filtro.LastUpdateFim,
+                    filtro.Rede,
+                    filtro.CodigoLoja,
+                    filtro.CodigoVendedor,
+                    Offset = offset,
+                    filtro.TamanhoPagina
+                }
+            );
         }
     }
 }

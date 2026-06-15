@@ -4,6 +4,6 @@ namespace AlterVision.Api.Repositories.Interfaces
 {
     public interface ILojaRepository
     {
-        Task<IEnumerable<LojaResponse>> ListarAsync();
+        Task<IEnumerable<LojaResponse>> ListarAsync(LojaFiltroRequest filtro);
     }
 }

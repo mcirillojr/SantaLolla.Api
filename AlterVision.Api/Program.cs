@@ -11,6 +11,7 @@ using System.Text;
 using Microsoft.OpenApi;
 
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Controllers
@@ -42,6 +43,7 @@ builder.Services.AddSingleton<SqlConnectionFactory>();
 builder.Services.AddScoped<ITerceiroRepository, TerceiroRepository>();
 builder.Services.AddScoped<ILojaRepository, LojaRepository>();
 builder.Services.AddScoped<IVendedorRepository, VendedorRepository>();
+builder.Services.AddScoped<IVendaRepository, VendaRepository>();
 
 // Services
 builder.Services.AddScoped<ITokenService, TokenService>();

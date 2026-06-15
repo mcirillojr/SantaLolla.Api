@@ -1,4 +1,5 @@
-﻿using AlterVision.Api.Repositories.Interfaces;
+﻿using AlterVision.Api.Models.Lojas;
+using AlterVision.Api.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,9 +18,19 @@ namespace AlterVision.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Listar()
+        public async Task<IActionResult> Listar([FromQuery] LojaFiltroRequest filtro)
         {
-            var lojas = await _lojaRepository.ListarAsync();
+            if (filtro.LastUpdateInicio.HasValue &&
+                filtro.LastUpdateFim.HasValue &&
+                filtro.LastUpdateInicio.Value > filtro.LastUpdateFim.Value)
+            {
+                return BadRequest(new
+                {
+                    mensagem = "lastUpdateInicio não pode ser maior que lastUpdateFim."
+                });
+            }
+
+            var lojas = await _lojaRepository.ListarAsync(filtro);
 
             return Ok(lojas);
         }
