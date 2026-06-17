@@ -38,10 +38,24 @@ namespace SantaLolla.Api.Models.Vendas
         public string? AliasId { get; set; }
 
         /// <summary>
+        /// Nome fantasia ou apelido da loja.
+        /// </summary>
+        /// <remarks>Exemplo: SL - OSCAR FREIRE</remarks>
+        [JsonPropertyName("apelido")]
+        public string? Apelido { get; set; }
+
+        /// <summary>
+        /// Razão social ou nome completo da loja.
+        /// </summary>
+        /// <remarks>Exemplo: SANTA LOLLA FRANQUIAS LTDA</remarks>
+        [JsonPropertyName("nome")]
+        public string? Nome { get; set; }
+
+        /// <summary>
         /// Código da venda.
         /// </summary>
         /// <remarks>Exemplo: 123456</remarks>
-       
+        [Required]
         [JsonPropertyName("codigoVenda")]
         public string CodigoVenda { get; set; } = string.Empty;
 
@@ -54,11 +68,11 @@ namespace SantaLolla.Api.Models.Vendas
         public DateTime DataVenda { get; set; }
 
         /// <summary>
-        /// Hora da venda no formato numérico da origem.
+        /// Número da nota fiscal autorizada relacionada à venda.
         /// </summary>
-        /// <remarks>Exemplo: 1530</remarks>
-        [JsonPropertyName("hora")]
-        public int? Hora { get; set; }
+        /// <remarks>Exemplo: 00012345</remarks>
+        [JsonPropertyName("notaFiscal")]
+        public string? NotaFiscal { get; set; }
 
         /// <summary>
         /// Data de emissão da nota fiscal, quando houver.
@@ -109,7 +123,7 @@ namespace SantaLolla.Api.Models.Vendas
         /// <summary>
         /// Quantidade total de itens da venda.
         /// </summary>
-        /// <remarks>Exemplo: 2</remarks>
+        /// <remarks>Exemplo: 2.0000</remarks>
         
         [JsonPropertyName("qtdeItens")]
         public decimal QtdeItens { get; set; }
@@ -126,7 +140,7 @@ namespace SantaLolla.Api.Models.Vendas
         /// Valor pago a prazo.
         /// </summary>
         /// <remarks>Exemplo: 0.00</remarks>
-        
+      
         [JsonPropertyName("aPrazo")]
         public decimal APrazo { get; set; }
 
@@ -148,7 +162,7 @@ namespace SantaLolla.Api.Models.Vendas
         /// <summary>
         /// Custo total da venda.
         /// </summary>
-        
+      
         [JsonPropertyName("custo")]
         public decimal Custo { get; set; }
 
@@ -160,10 +174,17 @@ namespace SantaLolla.Api.Models.Vendas
         public string? VendaImportada { get; set; }
 
         /// <summary>
-        /// Status da venda.
+        /// Status da venda na origem.
         /// </summary>
-        /// <remarks>Exemplo: Válida</remarks>
+        /// <remarks>Exemplo: S, O ou C</remarks>
         [JsonPropertyName("status")]
         public string? Status { get; set; }
+
+        /// <summary>
+        /// Observação registrada na venda.
+        /// </summary>
+        /// <remarks>Exemplo: VENDA IMPORTADA EM 2026-06-17</remarks>
+        [JsonPropertyName("obs")]
+        public string? Obs { get; set; }
     }
 }

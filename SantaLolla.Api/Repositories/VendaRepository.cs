@@ -33,15 +33,20 @@ namespace SantaLolla.Api.Repositories
 
             var offset = (filtro.Pagina - 1) * filtro.TamanhoPagina;
 
+            var notaFiscal = PrepararFiltroLike(filtro.NotaFiscal);
+            var obs = PrepararFiltroLike(filtro.Obs);
+
             const string sql = @"
                 SELECT
                     REDE AS Rede,
                     CODIGO_EMPRESA AS CodigoLoja,
                     CNPJ AS Cnpj,
                     ALIAS_ID AS AliasId,
+                    APELIDO AS Apelido,
+                    NOME AS Nome,
                     CODIGO_VENDA AS CodigoVenda,
                     DATA_VENDA AS DataVenda,
-                    HORA AS Hora,
+                    NOTA_FISCAL AS NotaFiscal,
                     EMISSAONF AS EmissaoNf,
                     LASTUPDATE_ORIGEM AS DataAtualizacao,
                     CODCLIENTE AS CodigoCliente,
@@ -56,7 +61,8 @@ namespace SantaLolla.Api.Repositories
                     FRETE AS Frete,
                     CUSTO AS Custo,
                     VENDA_IMPORTADA AS VendaImportada,
-                    STATUS AS Status
+                    STATUS AS Status,
+                    OBS AS Obs
                 FROM dbo.ALTERVISION_VENDAS_DETALHE
                 WHERE
                     (@DataInicio IS NULL OR DATA_VENDA >= @DataInicio)
@@ -65,8 +71,11 @@ namespace SantaLolla.Api.Repositories
                     AND (@LastUpdateFim IS NULL OR LASTUPDATE_ORIGEM <= @LastUpdateFim)
                     AND (@Rede IS NULL OR REDE = @Rede)
                     AND (@CodigoLoja IS NULL OR CODIGO_EMPRESA = @CodigoLoja)
+                    AND (@NotaFiscal IS NULL OR NOTA_FISCAL LIKE @NotaFiscal)
+                    AND (@Obs IS NULL OR OBS LIKE @Obs)
                 ORDER BY
-                    LASTUPDATE_ORIGEM,
+                    DATA_VENDA DESC,
+                    LASTUPDATE_ORIGEM DESC,
                     REDE,
                     CODIGO_EMPRESA,
                     CODIGO_VENDA
@@ -86,10 +95,29 @@ namespace SantaLolla.Api.Repositories
                     filtro.LastUpdateFim,
                     filtro.Rede,
                     filtro.CodigoLoja,
+                    NotaFiscal = notaFiscal,
+                    Obs = obs,
                     Offset = offset,
                     filtro.TamanhoPagina
                 }
             );
+        }
+
+        private static string? PrepararFiltroLike(string? valor)
+        {
+            if (string.IsNullOrWhiteSpace(valor))
+            {
+                return null;
+            }
+
+            valor = valor.Trim();
+
+            if (valor.Contains('%'))
+            {
+                return valor;
+            }
+
+            return $"%{valor}%";
         }
     }
 }
