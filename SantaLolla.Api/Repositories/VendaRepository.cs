@@ -63,7 +63,7 @@ namespace SantaLolla.Api.Repositories
                     VENDA_IMPORTADA AS VendaImportada,
                     STATUS AS Status,
                     OBS AS Obs
-                FROM dbo.ALTERVISION_VENDAS_DETALHE
+                FROM dbo.SETA_VENDAS_DETALHE
                 WHERE
                     (@DataInicio IS NULL OR DATA_VENDA >= @DataInicio)
                     AND (@DataFim IS NULL OR DATA_VENDA <= @DataFim)

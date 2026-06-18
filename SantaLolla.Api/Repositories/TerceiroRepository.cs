@@ -23,7 +23,7 @@ namespace SantaLolla.Api.Repositories
                     CLIENT_ID AS ClientId,
                     CLIENT_SECRET_HASH AS ClientSecretHash,
                     ATIVO AS Ativo
-                FROM dbo.ALTERVISION_API_TERCEIROS
+                FROM dbo.SETA_API_TERCEIROS
                 WHERE CLIENT_ID = @ClientId;
             ";
 
@@ -38,7 +38,7 @@ namespace SantaLolla.Api.Repositories
         public async Task AtualizarUltimoAcessoAsync(long idTerceiro)
         {
             const string sql = @"
-                UPDATE dbo.ALTERVISION_API_TERCEIROS
+                UPDATE dbo.SETA_API_TERCEIROS
                    SET DATA_ULTIMO_ACESSO = GETDATE()
                  WHERE ID_TERCEIRO = @IdTerceiro;
             ";

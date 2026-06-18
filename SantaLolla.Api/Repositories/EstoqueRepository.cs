@@ -54,7 +54,7 @@ namespace SantaLolla.Api.Repositories
                     PRECO2 AS Preco2,
                     DATA_ESTOQUE AS DataEstoque,
                     DATA_ATUALIZACAO AS DataAtualizacao
-                FROM dbo.ALTERVISION_ESTOQUE_ATUAL
+                FROM dbo.SETA_ESTOQUE_ATUAL
                 WHERE
                     (@Rede IS NULL OR REDE = @Rede)
                     AND (@CodigoLoja IS NULL OR CODIGO_EMPRESA = @CodigoLoja)
@@ -131,7 +131,7 @@ namespace SantaLolla.Api.Repositories
                     TAMANHO AS Tamanho,
                     MARCA AS Marca,
                     SUM(QUANTIDADE) AS QuantidadeTotal
-                FROM dbo.ALTERVISION_ESTOQUE_ATUAL
+                FROM dbo.SETA_ESTOQUE_ATUAL
                 WHERE
                     (@NomeLoja IS NULL OR APELIDO_EMPRESA LIKE @NomeLoja)
                     AND (@Referencia IS NULL OR REFERENCIA LIKE @Referencia)

@@ -41,7 +41,7 @@ namespace SantaLolla.Api.Repositories
                     CNPJ AS Cnpj,
                     CEP AS Cep,
                     LASTUPDATE_ORIGEM AS DataAtualizacao
-                FROM dbo.ALTERVISION_LOJAS
+                FROM dbo.SETA_LOJAS
                 WHERE ISNULL(ATIVO, 1) = 1
                   AND (@LastUpdateInicio IS NULL OR LASTUPDATE_ORIGEM >= @LastUpdateInicio)
                   AND (@LastUpdateFim IS NULL OR LASTUPDATE_ORIGEM <= @LastUpdateFim)

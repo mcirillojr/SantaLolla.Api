@@ -69,7 +69,7 @@ namespace SantaLolla.Api.Repositories
                         ELSE 'Ativo'
                     END AS Status
 
-                FROM dbo.ALTERVISION_VENDEDORES
+                FROM dbo.SETA_VENDEDORES
                 WHERE ISNULL(ATIVO, 1) = 1
                   AND (DEMISSAO IS NULL OR DEMISSAO > CAST(GETDATE() AS DATE))
                   AND (@LastUpdateInicio IS NULL OR LASTUPDATE_ORIGEM >= @LastUpdateInicio)
