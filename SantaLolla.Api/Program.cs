@@ -121,7 +121,9 @@ builder.Services.AddHostedService<SantaLollaWorker>();
 var app = builder.Build();
 
 // Swagger
-if (app.Environment.IsDevelopment())
+var swaggerEnabled = builder.Configuration.GetValue<bool>("SwaggerSettings:Enabled");
+
+if (app.Environment.IsDevelopment() || swaggerEnabled)
 {
     app.UseSwagger();
 
@@ -133,7 +135,11 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+
+if (!app.Environment.IsProduction())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
