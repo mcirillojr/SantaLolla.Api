@@ -80,6 +80,7 @@ builder.Services.AddScoped<IVendedorRepository, VendedorRepository>();
 builder.Services.AddScoped<IVendaRepository, VendaRepository>();
 builder.Services.AddScoped<IEstoqueRepository, EstoqueRepository>();
 builder.Services.AddScoped<IClienteVarejoRepository, ClienteVarejoRepository>();
+builder.Services.AddScoped<IVendaProdutoRepository, VendaProdutoRepository>();
 builder.Services.AddScoped<IApiLogRepository, ApiLogRepository>();
 
 // Services
