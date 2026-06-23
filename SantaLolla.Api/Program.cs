@@ -10,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Reflection;
 using Microsoft.OpenApi.Models;
+using SantaLolla.Api.Middlewares;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -143,6 +144,8 @@ if (!app.Environment.IsProduction())
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseMiddleware<PermissaoTerceiroMiddleware>();
 
 app.MapControllers();
 

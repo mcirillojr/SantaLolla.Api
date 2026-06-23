@@ -50,5 +50,39 @@ namespace SantaLolla.Api.Repositories
                 new { IdTerceiro = idTerceiro }
             );
         }
+        public async Task<bool> TerceiroTemPermissaoAsync(
+            long idTerceiro,
+            string endpoint,
+            string metodoHttp
+)
+        {
+            const string sql = @"
+        SELECT TOP 1 1
+        FROM dbo.SETA_API_TERCEIROS_PERMISSOES
+        WHERE ID_TERCEIRO = @IdTerceiro
+          AND PERMITIDO = 1
+          AND (
+                (ENDPOINT = '*' AND METODO_HTTP = '*')
+             OR (ENDPOINT = '*' AND METODO_HTTP = @MetodoHttp)
+             OR (ENDPOINT = @Endpoint AND METODO_HTTP = '*')
+             OR (ENDPOINT = @Endpoint AND METODO_HTTP = @MetodoHttp)
+          );
+    ";
+
+            using var connection = _connectionFactory.CreateConnection();
+
+            var permitido = await connection.QueryFirstOrDefaultAsync<int?>(
+                sql,
+                new
+                {
+                    IdTerceiro = idTerceiro,
+                    Endpoint = endpoint,
+                    MetodoHttp = metodoHttp.ToUpper()
+                }
+            );
+
+            return permitido.HasValue;
+        }
+
     }
 }

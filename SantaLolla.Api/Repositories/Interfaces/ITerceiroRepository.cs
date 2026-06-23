@@ -7,5 +7,11 @@ namespace SantaLolla.Api.Repositories.Interfaces
         Task<TerceiroApi?> ObterPorClientIdAsync(string clientId);
 
         Task AtualizarUltimoAcessoAsync(long idTerceiro);
+
+        Task<bool> TerceiroTemPermissaoAsync(
+            long idTerceiro,
+            string endpoint,
+            string metodoHttp
+        );
     }
 }
