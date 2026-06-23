@@ -16,6 +16,6 @@
         public string? IpOrigem { get; set; }
         public string? UserAgent { get; set; }
 
-        public string? MensagemErro { get; set; };
+        public string? MensagemErro { get; set; }
     }
 }
