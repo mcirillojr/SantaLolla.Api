@@ -70,6 +70,7 @@ namespace SantaLolla.Api.Models.Vendas
         /// <summary>
         /// Número da página da consulta.
         /// </summary>
+        /// <example>1</example>
         /// <remarks>Valor padrão: 1</remarks>
         [JsonPropertyName("pagina")]
         public int Pagina { get; set; } = 1;
@@ -77,6 +78,7 @@ namespace SantaLolla.Api.Models.Vendas
         /// <summary>
         /// Quantidade de registros por página.
         /// </summary>
+        /// <example>500</example>
         /// <remarks>Valor padrão: 500. Limite máximo aplicado pela API: 5000.</remarks>
         [JsonPropertyName("tamanhoPagina")]
         public int TamanhoPagina { get; set; } = 500;

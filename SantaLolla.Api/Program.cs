@@ -11,9 +11,7 @@ using System.Text;
 using System.Reflection;
 using Microsoft.OpenApi.Models;
 using SantaLolla.Api.Middlewares;
-using SantaLolla.Api.Middlewares;
-using SantaLolla.Api.Repositories;
-using SantaLolla.Api.Repositories.Interfaces;
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -81,7 +79,7 @@ builder.Services.AddScoped<ILojaRepository, LojaRepository>();
 builder.Services.AddScoped<IVendedorRepository, VendedorRepository>();
 builder.Services.AddScoped<IVendaRepository, VendaRepository>();
 builder.Services.AddScoped<IEstoqueRepository, EstoqueRepository>();
-
+builder.Services.AddScoped<IClienteVarejoRepository, ClienteVarejoRepository>();
 builder.Services.AddScoped<IApiLogRepository, ApiLogRepository>();
 
 // Services
