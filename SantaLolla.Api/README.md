@@ -158,6 +158,261 @@ SantaLolla.Api/
 }
 ```
 
+### Controle de Acesso por Endpoint
+
+A API implementa um sistema de **controle de acesso granular por endpoint**, garantindo que cada terceiro (integrador) possa acessar apenas os endpoints para os quais tem permissão explícita.
+
+#### Como Funciona
+
+```
+┌─────────────────────────────────────────────────────────┐
+│         Requisição HTTP com JWT Token                   │
+│  GET /api/vendas                                        │
+│  Authorization: Bearer {JWT}                            │
+└──────────────────┬──────────────────────────────────────┘
+                   │
+                   ▼
+        ┌──────────────────────┐
+        │ PermissaoTerceiro    │
+        │ Middleware           │
+        └──────────┬───────────┘
+                   │
+         ┌─────────┴─────────┐
+         │                   │
+    ✓ Endpoint               │
+    autorizado?              ▼
+         │          ┌─────────────────────┐
+         ▼          │ Consultar Banco de  │
+    [Continuar]     │ Dados               │
+                    │ VerificaPermissao() │
+                    └────────┬────────────┘
+                             │
+                    ┌────────┴────────┐
+                    │                 │
+                ✓ Permitido       ✗ Negado
+                    │                 │
+                    ▼                 ▼
+              [Continuar]        [403 Forbidden]
+                Requisição
+```
+
+#### O que é Validado
+
+| Aspecto | Descrição |
+|---------|-----------|
+| **ID do Terceiro** | Extraído do JWT (claim: `id_terceiro`) |
+| **Endpoint** | Caminho da requisição (ex: `/api/vendas`) |
+| **Método HTTP** | GET, POST, PUT, DELETE, etc. |
+| **Permissão** | Verificada na tabela de permissões do banco |
+
+#### Endpoints Liberados (Sem Validação)
+
+Os seguintes endpoints **não requerem permissão explícita**:
+
+- `GET /swagger/*` - Documentação Swagger
+- `POST /api/auth/token` - Geração de token JWT
+- `POST /api/auth/token-form` - Geração de token (formulário)
+
+#### Exemplo de Resposta Negada
+
+```json
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+
+{
+  "mensagem": "Acesso não autorizado para este endpoint.",
+  "endpoint": "/api/vendas",
+  "metodo": "GET"
+}
+```
+
+#### Implementação
+
+O controle é implementado através do **`PermissaoTerceiroMiddleware`**:
+
+```csharp
+// Program.cs
+app.UseMiddleware<PermissaoTerceiroMiddleware>();
+```
+
+O middleware:
+1. Extrai o `id_terceiro` do JWT token
+2. Consulta o banco de dados para verificar permissão
+3. Retorna **403 Forbidden** se não autorizado
+4. Continua normalmente se autorizado
+
+#### Configurar Permissões
+
+As permissões são armazenadas na tabela `SETA_TERCEIRO_PERMISSOES` e devem ser configuradas via:
+
+- Dashboard administrativo (recomendado)
+- Scripts SQL diretos (apenas para administradores)
+- API de configuração (se disponível)
+
+**Exemplo de estrutura:**
+
+| IdTerceiro | Endpoint | Metodo | Ativo |
+|-----------|----------|--------|-------|
+| 1 | /api/vendas | GET | Sim |
+| 1 | /api/vendas | POST | Sim |
+| 1 | /api/estoques | GET | Sim |
+| 2 | /api/vendas | GET | Sim |
+| 2 | /api/lojas | GET | Sim |
+
+---
+
+### 📊 Logs de Auditoria de Acesso
+
+A API registra automaticamente **todos os acessos e operações** realizadas pelos terceiros (integradores), criando um histórico completo para auditoria, análise de performance e troubleshooting.
+
+#### O que é Registrado
+
+| Campo | Descrição | Exemplo |
+|-------|-----------|---------|
+| **ID Terceiro** | Identificador do integrador | `123` |
+| **Client ID** | Identificador do cliente dentro do JWT | `app-vendas-001` |
+| **Nome Terceiro** | Nome do integrador (do token) | `SantaLolla Vendas` |
+| **Método HTTP** | GET, POST, PUT, DELETE, PATCH | `GET` |
+| **Endpoint** | Caminho da requisição | `/api/vendas?filtro=pendentes` |
+| **Query String** | Parâmetros da URL | `filtro=pendentes&limite=10` |
+| **Status Code** | Código HTTP da resposta | `200`, `400`, `403`, `500` |
+| **Tempo de Resposta** | Duração em milissegundos | `125` ms |
+| **IP de Origem** | Endereço IP do cliente | `192.168.1.100` |
+| **User Agent** | Navegador/cliente usado | `Mozilla/5.0 (Windows...)` |
+| **Mensagem de Erro** | Se houver erro | `Connection timeout` |
+| **Data/Hora** | Timestamp da requisição | `2024-01-15 10:30:45` |
+
+#### Fluxo de Captura
+
+```
+┌─────────────────────────────────────────────────┐
+│         Requisição HTTP                         │
+│  GET /api/vendas                                │
+│  Authorization: Bearer {JWT}                    │
+└────────────────┬────────────────────────────────┘
+                 │
+                 ▼
+    ┌────────────────────────┐
+    │  ApiLogMiddleware      │
+    │  (inicia cronômetro)   │
+    └────────────┬───────────┘
+                 │
+                 ▼
+    ┌────────────────────────┐
+    │  Outros Middlewares    │
+    │  Controllers           │
+    │  Lógica de Negócio     │
+    └────────────┬───────────┘
+                 │
+                 ▼
+    ┌────────────────────────┐
+    │  Resposta HTTP         │
+    │  (cronômetro para)     │
+    └────────────┬───────────┘
+                 │
+                 ▼
+    ┌────────────────────────────────────────┐
+    │  Compor Log (tudo que foi capturado)   │
+    │  - ID Terceiro (do JWT)                │
+    │  - Endpoint, Método, Status Code       │
+    │  - Tempo de resposta                   │
+    │  - IP, User Agent                      │
+    │  - Erros (se houver)                   │
+    └────────────┬─────────────────────────┘
+                 │
+                 ▼
+    ┌────────────────────────────────────────┐
+    │  Gravar em Banco de Dados              │
+    │  Tabela: SETA_API_LOG_ACESSOS          │
+    └────────────────────────────────────────┘
+```
+
+#### Modelo de Dados - ApiLogAcesso
+
+```csharp
+public class ApiLogAcesso
+{
+    public long? IdTerceiro { get; set; }        // ID do integrador
+    public string? ClientId { get; set; }        // Client ID do JWT
+    public string? NomeTerceiro { get; set; }    // Nome do integrador
+
+    public string MetodoHttp { get; set; }       // GET, POST, etc
+    public string Endpoint { get; set; }         // /api/vendas
+    public string? QueryString { get; set; }     // Parâmetros da URL
+
+    public int? StatusCode { get; set; }         // 200, 404, 500
+    public int? TempoRespostaMs { get; set; }    // Tempo em ms
+
+    public string? IpOrigem { get; set; }        // IP do cliente
+    public string? UserAgent { get; set; }       // Browser/Cliente
+
+    public string? MensagemErro { get; set; }    // Erro se houver
+}
+```
+
+#### Armazenamento em Banco de Dados
+
+Os logs são armazenados na tabela **`SETA_API_LOG_ACESSOS`** com a seguinte estrutura:
+
+```sql
+CREATE TABLE SETA_API_LOG_ACESSOS (
+    ID_LOG_ACESSO BIGINT PRIMARY KEY IDENTITY(1,1),
+    ID_TERCEIRO BIGINT NULL,
+    CLIENT_ID NVARCHAR(100) NULL,
+    NOME_TERCEIRO NVARCHAR(100) NULL,
+    METODO_HTTP NVARCHAR(10),
+    ENDPOINT NVARCHAR(300),
+    QUERY_STRING NVARCHAR(MAX) NULL,
+    STATUS_CODE INT,
+    TEMPO_RESPOSTA_MS INT,
+    IP_ORIGEM NVARCHAR(100),
+    USER_AGENT NVARCHAR(500),
+    MENSAGEM_ERRO NVARCHAR(MAX) NULL,
+    DATA_REQUISICAO DATETIME DEFAULT GETDATE()
+);
+```
+
+#### Extracting Claims do JWT
+
+Os dados do log são extraídos automaticamente do JWT token através dos seguintes claims:
+
+| Claim | Campo no Log | Descrição |
+|-------|-------------|-----------|
+| `id_terceiro` ou `sub` | IdTerceiro | Identificador único do integrador |
+| `client_id` ou `name` | ClientId | Identificador do cliente/aplicação |
+| `nome` | NomeTerceiro | Nome amigável do terceiro |
+
+#### Exclusões de Log
+
+Os seguintes requisições **NÃO são registradas** para evitar poluição de logs:
+
+- `GET /swagger/*` - Documentação da API
+- Requisições de healthcheck (se configurado)
+
+#### Casos de Uso
+
+**Auditoria e Compliance:**
+- Rastrear quem acessou quais dados e quando
+- Identificar tentativas de acesso não autorizado
+- Gerar relatórios de conformidade
+
+**Troubleshooting:**
+- Analisar erros específicos de um cliente
+- Identificar endpoints com problemas de performance
+- Debugar integrações problemáticas
+
+**Análise de Performance:**
+- Monitorar tempo de resposta por endpoint
+- Identificar gargalos
+- Otimizar recursos
+
+**Segurança:**
+- Detectar padrões suspeitos (múltiplas 403, velocidade anormal)
+- Rastrear atividades após mudanças de acesso
+- Validar cumprimento de políticas de segurança
+
+---
+
 ## 📡 API Endpoints
 
 ### 1. Autenticação (`/api/auth`)
