@@ -2,6 +2,9 @@
 
 namespace SantaLolla.Api.Models.ClientesVarejo
 {
+    /// <summary>
+    /// Retorno detalhado de Clientes varejo.
+    /// </summary>
     public class ClienteVarejoResponse
     {
         [JsonPropertyName("rede")]
