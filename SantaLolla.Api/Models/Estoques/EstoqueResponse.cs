@@ -1,49 +1,44 @@
-using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace SantaLolla.Api.Models.Estoques
 {
-    /// <summary>
-    /// Retorno detalhado do estoque atual.
-    /// </summary>
     public class EstoqueResponse
     {
         /// <summary>
-        /// Código da rede de origem.
+        /// Rede/schema de origem.
         /// </summary>
-        /// <remarks>Exemplo: rede000001</remarks>
-        
         [JsonPropertyName("rede")]
-        public string Rede { get; set; } = string.Empty;
+        public string? Rede { get; set; }
 
         /// <summary>
-        /// Código da loja/empresa.
+        /// Código da empresa/loja.
         /// </summary>
-        /// <remarks>Exemplo: 00000001</remarks>
-        
-        [JsonPropertyName("codigoLoja")]
-        public string CodigoLoja { get; set; } = string.Empty;
+        [JsonPropertyName("codigoEmpresa")]
+        public string? CodigoEmpresa { get; set; }
 
         /// <summary>
-        /// CNPJ da loja.
+        /// CNPJ da empresa/loja.
         /// </summary>
         [JsonPropertyName("cnpj")]
         public string? Cnpj { get; set; }
 
         /// <summary>
-        /// Nome fantasia ou apelido da loja.
+        /// Apelido/nome fantasia da empresa.
         /// </summary>
-        /// <remarks>Exemplo: SL - OSCAR FREIRE</remarks>
-        [JsonPropertyName("nomeLoja")]
-        public string? NomeLoja { get; set; }
+        [JsonPropertyName("apelidoEmpresa")]
+        public string? ApelidoEmpresa { get; set; }
 
         /// <summary>
-        /// Código base do produto.
+        /// Nome/razão social da empresa.
         /// </summary>
-        /// <remarks>Exemplo: 123456</remarks>
-        
+        [JsonPropertyName("nomeEmpresa")]
+        public string? NomeEmpresa { get; set; }
+
+        /// <summary>
+        /// Código do produto.
+        /// </summary>
         [JsonPropertyName("codigoProduto")]
-        public string CodigoProduto { get; set; } = string.Empty;
+        public string? CodigoProduto { get; set; }
 
         /// <summary>
         /// Descrição do produto.
@@ -54,7 +49,6 @@ namespace SantaLolla.Api.Models.Estoques
         /// <summary>
         /// Tamanho do produto.
         /// </summary>
-        /// <remarks>Exemplo: 35</remarks>
         [JsonPropertyName("tamanho")]
         public string? Tamanho { get; set; }
 
@@ -71,7 +65,7 @@ namespace SantaLolla.Api.Models.Estoques
         public string? Grade { get; set; }
 
         /// <summary>
-        /// Referência comercial do produto.
+        /// Referência do produto.
         /// </summary>
         [JsonPropertyName("referencia")]
         public string? Referencia { get; set; }
@@ -89,12 +83,22 @@ namespace SantaLolla.Api.Models.Estoques
         public string? Grupo { get; set; }
 
         /// <summary>
+        /// Descrição da coleção do produto.
+        /// </summary>
+        [JsonPropertyName("descricaoColecao")]
+        public string? DescricaoColecao { get; set; }
+
+        /// <summary>
+        /// Descrição da linha do produto.
+        /// </summary>
+        [JsonPropertyName("descricaoLinha")]
+        public string? DescricaoLinha { get; set; }
+
+        /// <summary>
         /// Quantidade atual em estoque.
         /// </summary>
-        /// <remarks>Exemplo: 10</remarks>
-        
         [JsonPropertyName("quantidade")]
-        public int Quantidade { get; set; }
+        public int? Quantidade { get; set; }
 
         /// <summary>
         /// Custo do produto.
@@ -109,25 +113,31 @@ namespace SantaLolla.Api.Models.Estoques
         public decimal? Preco { get; set; }
 
         /// <summary>
-        /// Preço alternativo 1.
+        /// Preço 1 do produto.
         /// </summary>
         [JsonPropertyName("preco1")]
         public decimal? Preco1 { get; set; }
 
         /// <summary>
-        /// Preço alternativo 2.
+        /// Preço 2 do produto.
         /// </summary>
         [JsonPropertyName("preco2")]
         public decimal? Preco2 { get; set; }
 
         /// <summary>
-        /// Data de referência do estoque.
+        /// Data base do estoque.
         /// </summary>
         [JsonPropertyName("dataEstoque")]
         public DateTime? DataEstoque { get; set; }
 
         /// <summary>
-        /// Data/hora da última atualização do registro na API.
+        /// Data de criação do registro na base de integração.
+        /// </summary>
+        [JsonPropertyName("dataCriacao")]
+        public DateTime? DataCriacao { get; set; }
+
+        /// <summary>
+        /// Data da última atualização do registro na base de integração.
         /// </summary>
         [JsonPropertyName("dataAtualizacao")]
         public DateTime? DataAtualizacao { get; set; }

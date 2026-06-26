@@ -48,6 +48,19 @@ namespace SantaLolla.Api.Models.Estoques
         public string? Cor { get; set; }
 
         /// <summary>
+        /// Descrição da coleção.
+        /// </summary>
+        [JsonPropertyName("descricaoColecao")]
+        public string? DescricaoColecao { get; set; }
+
+
+        /// <summary>
+        /// Descrição da linha.
+        /// </summary>
+        [JsonPropertyName("descricaoLinha")]
+        public string? DescricaoLinha { get; set; }
+
+        /// <summary>
         /// Data/hora inicial da atualização do estoque.
         /// </summary>
         /// <remarks>Exemplo: 2026-06-15T00:00:00</remarks>

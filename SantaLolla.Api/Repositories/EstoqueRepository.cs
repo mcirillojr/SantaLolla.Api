@@ -33,12 +33,17 @@ namespace SantaLolla.Api.Repositories
 
             var offset = (filtro.Pagina - 1) * filtro.TamanhoPagina;
 
+            var descricaoColecao = PrepararFiltroLike(filtro.DescricaoColecao);
+
+            var descricaoLinha = PrepararFiltroLike(filtro.DescricaoLinha);
+
             const string sql = @"
                 SELECT
                     REDE AS Rede,
-                    CODIGO_EMPRESA AS CodigoLoja,
+                    CODIGO_EMPRESA AS CodigoEmpresa,
                     CNPJ AS Cnpj,
-                    APELIDO_EMPRESA AS NomeLoja,
+                    APELIDO_EMPRESA AS ApelidoEmpresa,
+                    NOME_EMPRESA AS NomeEmpresa,
                     CODIGO_PRODUTO AS CodigoProduto,
                     DESCRICAO_PRODUTO AS DescricaoProduto,
                     TAMANHO AS Tamanho,
@@ -47,12 +52,15 @@ namespace SantaLolla.Api.Repositories
                     REFERENCIA AS Referencia,
                     MARCA AS Marca,
                     GRUPO AS Grupo,
+                    DESCRICAO_COLECAO AS DescricaoColecao,
+                    DESCRICAO_LINHA AS DescricaoLinha,
                     QUANTIDADE AS Quantidade,
                     CUSTO AS Custo,
                     PRECO AS Preco,
                     PRECO1 AS Preco1,
                     PRECO2 AS Preco2,
                     DATA_ESTOQUE AS DataEstoque,
+                    DATA_CRIACAO AS DataCriacao,
                     DATA_ATUALIZACAO AS DataAtualizacao
                 FROM dbo.SETA_ESTOQUE_ATUAL
                 WHERE
@@ -62,6 +70,8 @@ namespace SantaLolla.Api.Repositories
                     AND (@Referencia IS NULL OR REFERENCIA = @Referencia)
                     AND (@Tamanho IS NULL OR TAMANHO = @Tamanho)
                     AND (@Cor IS NULL OR COR = @Cor)
+                    AND (@DescricaoColecao IS NULL OR DESCRICAO_COLECAO LIKE @DescricaoColecao)
+                    AND (@DescricaoLinha IS NULL OR DESCRICAO_LINHA LIKE @DescricaoLinha)
                     AND (@DataAtualizacaoInicio IS NULL OR DATA_ATUALIZACAO >= @DataAtualizacaoInicio)
                     AND (@DataAtualizacaoFim IS NULL OR DATA_ATUALIZACAO <= @DataAtualizacaoFim)
                 ORDER BY
@@ -79,12 +89,14 @@ namespace SantaLolla.Api.Repositories
                 sql,
                 new
                 {
-                    filtro.Rede,
-                    filtro.CodigoLoja,
-                    filtro.CodigoProduto,
-                    filtro.Referencia,
-                    filtro.Tamanho,
-                    filtro.Cor,
+                    Rede = NormalizarTexto(filtro.Rede),
+                    CodigoLoja = NormalizarTexto(filtro.CodigoLoja),
+                    CodigoProduto = NormalizarTexto(filtro.CodigoProduto),
+                    Referencia = NormalizarTexto(filtro.Referencia),
+                    Tamanho = NormalizarTexto(filtro.Tamanho),
+                    Cor = NormalizarTexto(filtro.Cor),
+                    DescricaoColecao = descricaoColecao,
+                    DescricaoLinha = descricaoLinha,
                     filtro.DataAtualizacaoInicio,
                     filtro.DataAtualizacaoFim,
                     Offset = offset,
@@ -114,40 +126,46 @@ namespace SantaLolla.Api.Repositories
 
             var offset = (filtro.Pagina - 1) * filtro.TamanhoPagina;
 
-            var nomeLoja = string.IsNullOrWhiteSpace(filtro.NomeLoja)
-                ? null
-                : filtro.NomeLoja.Trim();
-
-            var referencia = string.IsNullOrWhiteSpace(filtro.Referencia)
-                ? null
-                : filtro.Referencia.Trim();
+            var nomeLoja = PrepararFiltroLike(filtro.NomeLoja);
+            var referencia = PrepararFiltroLike(filtro.Referencia);
+            var descricaoColecao = PrepararFiltroLike(filtro.DescricaoColecao);
+            var descricaoLinha = PrepararFiltroLike(filtro.DescricaoLinha);
 
             const string sql = @"
                 SELECT
-                    APELIDO_EMPRESA AS NomeLoja,
-                    REFERENCIA AS Referencia,
-                    DESCRICAO_PRODUTO AS DescricaoProduto,
+                    REDE AS Rede,
                     CODIGO_PRODUTO AS CodigoProduto,
-                    TAMANHO AS Tamanho,
+                    DESCRICAO_PRODUTO AS DescricaoProduto,
+                    REFERENCIA AS Referencia,
                     MARCA AS Marca,
-                    SUM(QUANTIDADE) AS QuantidadeTotal
+                    GRUPO AS Grupo,
+                    DESCRICAO_COLECAO AS DescricaoColecao,
+                    DESCRICAO_LINHA AS DescricaoLinha,
+                    SUM(QUANTIDADE) AS QuantidadeTotal,
+                    AVG(CUSTO) AS Custo,
+                    AVG(PRECO) AS Preco,
+                    AVG(PRECO1) AS Preco1,
+                    AVG(PRECO2) AS Preco2
                 FROM dbo.SETA_ESTOQUE_ATUAL
                 WHERE
                     (@NomeLoja IS NULL OR APELIDO_EMPRESA LIKE @NomeLoja)
                     AND (@Referencia IS NULL OR REFERENCIA LIKE @Referencia)
+                    AND (@DescricaoColecao IS NULL OR DESCRICAO_COLECAO LIKE @DescricaoColecao)
+                    AND (@DescricaoLinha IS NULL OR DESCRICAO_LINHA LIKE @DescricaoLinha)
                 GROUP BY
-                    APELIDO_EMPRESA,
-                    REFERENCIA,
-                    DESCRICAO_PRODUTO,
+                    REDE,
                     CODIGO_PRODUTO,
-                    TAMANHO,
-                    MARCA
+                    DESCRICAO_PRODUTO,
+                    REFERENCIA,
+                    MARCA,
+                    GRUPO,
+                    DESCRICAO_COLECAO,
+                    DESCRICAO_LINHA
                 HAVING SUM(QUANTIDADE) <> 0
                 ORDER BY
-                    APELIDO_EMPRESA,
+                    REDE,
                     REFERENCIA,
-                    CODIGO_PRODUTO,
-                    TAMANHO
+                    CODIGO_PRODUTO
                 OFFSET @Offset ROWS
                 FETCH NEXT @TamanhoPagina ROWS ONLY;
             ";
@@ -160,10 +178,36 @@ namespace SantaLolla.Api.Repositories
                 {
                     NomeLoja = nomeLoja,
                     Referencia = referencia,
+                    DescricaoColecao = descricaoColecao,
+                    DescricaoLinha = descricaoLinha,
                     Offset = offset,
                     filtro.TamanhoPagina
                 }
             );
+        }
+
+        private static string? NormalizarTexto(string? valor)
+        {
+            return string.IsNullOrWhiteSpace(valor)
+                ? null
+                : valor.Trim();
+        }
+
+        private static string? PrepararFiltroLike(string? valor)
+        {
+            if (string.IsNullOrWhiteSpace(valor))
+            {
+                return null;
+            }
+
+            valor = valor.Trim();
+
+            if (valor.Contains('%'))
+            {
+                return valor;
+            }
+
+            return $"%{valor}%";
         }
     }
 }

@@ -23,6 +23,18 @@ namespace SantaLolla.Api.Models.Estoques
         public string? Referencia { get; set; }
 
         /// <summary>
+        /// Descrição da coleção.
+        /// </summary>
+        [JsonPropertyName("descricaoColecao")]
+        public string? DescricaoColecao { get; set; }
+
+        /// <summary>
+        /// Descrição da linha do produto.
+        /// </summary>
+        [JsonPropertyName("descricaoLinha")]
+        public string? DescricaoLinha { get; set; }
+
+        /// <summary>
         /// Número da página da consulta.
         /// </summary>
         /// <example>1</example>
