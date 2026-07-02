@@ -1,10 +1,11 @@
 ﻿using SantaLolla.Api.Models.ClientesVarejo;
+using SantaLolla.Api.Models.PagedResponse;
 
 namespace SantaLolla.Api.Repositories.Interfaces
 {
     public interface IClienteVarejoRepository
     {
-        Task<IEnumerable<ClienteVarejoResponse>> ListarAsync(
+        Task<PagedResponse<ClienteVarejoResponse>> ListarAsync(
             ClienteVarejoFiltroRequest filtro
         );
     }

@@ -1,10 +1,11 @@
-﻿using SantaLolla.Api.Models.VendasProdutos;
+﻿using SantaLolla.Api.Models.PagedResponse;
+using SantaLolla.Api.Models.VendasProdutos;
 
 namespace SantaLolla.Api.Repositories.Interfaces
 {
     public interface IVendaProdutoRepository
     {
-        Task<IEnumerable<VendaProdutoResponse>> ListarAsync(
+        Task<PagedResponse<VendaProdutoResponse>> ListarAsync(
             VendaProdutoFiltroRequest filtro
         );
     }

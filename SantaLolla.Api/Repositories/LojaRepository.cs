@@ -1,7 +1,8 @@
+using Dapper;
 using SantaLolla.Api.Data;
 using SantaLolla.Api.Models.Lojas;
+using SantaLolla.Api.Models.PagedResponse;
 using SantaLolla.Api.Repositories.Interfaces;
-using Dapper;
 
 namespace SantaLolla.Api.Repositories
 {
@@ -14,7 +15,8 @@ namespace SantaLolla.Api.Repositories
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<IEnumerable<LojaResponse>> ListarAsync(LojaFiltroRequest filtro)
+        public async Task<PagedResponse<LojaResponse>> ListarAsync(
+            LojaFiltroRequest filtro)
         {
             if (filtro.Pagina <= 0)
             {
@@ -23,7 +25,7 @@ namespace SantaLolla.Api.Repositories
 
             if (filtro.TamanhoPagina <= 0)
             {
-                filtro.TamanhoPagina = 500;
+                filtro.TamanhoPagina = 50;
             }
 
             if (filtro.TamanhoPagina > 5000)
@@ -35,6 +37,19 @@ namespace SantaLolla.Api.Repositories
 
             const string sql = @"
                 SELECT
+                    COUNT(1)
+                FROM dbo.SETA_LOJAS
+                WHERE ISNULL(ATIVO, 1) = 1
+                  AND (@LastUpdateInicio IS NULL
+                       OR LASTUPDATE_ORIGEM >= @LastUpdateInicio)
+                  AND (@LastUpdateFim IS NULL
+                       OR LASTUPDATE_ORIGEM <= @LastUpdateFim)
+                  AND (@Rede IS NULL
+                       OR REDE = @Rede)
+                  AND (@CodigoLoja IS NULL
+                       OR CODIGO_EMPRESA = @CodigoLoja);
+
+                SELECT
                     REDE AS Rede,
                     CODIGO_EMPRESA AS CodigoLoja,
                     APELIDO AS NomeFantasia,
@@ -44,18 +59,24 @@ namespace SantaLolla.Api.Repositories
                     LASTUPDATE_ORIGEM AS DataAtualizacao
                 FROM dbo.SETA_LOJAS
                 WHERE ISNULL(ATIVO, 1) = 1
-                  AND (@LastUpdateInicio IS NULL OR LASTUPDATE_ORIGEM >= @LastUpdateInicio)
-                  AND (@LastUpdateFim IS NULL OR LASTUPDATE_ORIGEM <= @LastUpdateFim)
-                  AND (@Rede IS NULL OR REDE = @Rede)
-                  AND (@CodigoLoja IS NULL OR CODIGO_EMPRESA = @CodigoLoja)
-                ORDER BY REDE, CODIGO_EMPRESA
+                  AND (@LastUpdateInicio IS NULL
+                       OR LASTUPDATE_ORIGEM >= @LastUpdateInicio)
+                  AND (@LastUpdateFim IS NULL
+                       OR LASTUPDATE_ORIGEM <= @LastUpdateFim)
+                  AND (@Rede IS NULL
+                       OR REDE = @Rede)
+                  AND (@CodigoLoja IS NULL
+                       OR CODIGO_EMPRESA = @CodigoLoja)
+                ORDER BY
+                    REDE,
+                    CODIGO_EMPRESA
                 OFFSET @Offset ROWS
                 FETCH NEXT @TamanhoPagina ROWS ONLY;
             ";
 
             using var connection = _connectionFactory.CreateConnection();
 
-            return await connection.QueryAsync<LojaResponse>(
+            using var resultado = await connection.QueryMultipleAsync(
                 sql,
                 new
                 {
@@ -66,6 +87,19 @@ namespace SantaLolla.Api.Repositories
                     Offset = offset,
                     filtro.TamanhoPagina
                 }
+            );
+
+            var total = await resultado.ReadSingleAsync<int>();
+
+            var lojas = (
+                await resultado.ReadAsync<LojaResponse>()
+            ).ToList();
+
+            return PagedResponse<LojaResponse>.Create(
+                lojas,
+                total,
+                filtro.Pagina,
+                filtro.TamanhoPagina
             );
         }
     }

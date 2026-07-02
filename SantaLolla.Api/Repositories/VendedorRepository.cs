@@ -1,7 +1,8 @@
+using Dapper;
 using SantaLolla.Api.Data;
+using SantaLolla.Api.Models.PagedResponse;
 using SantaLolla.Api.Models.Vendedores;
 using SantaLolla.Api.Repositories.Interfaces;
-using Dapper;
 
 namespace SantaLolla.Api.Repositories
 {
@@ -9,12 +10,14 @@ namespace SantaLolla.Api.Repositories
     {
         private readonly SqlConnectionFactory _connectionFactory;
 
-        public VendedorRepository(SqlConnectionFactory connectionFactory)
+        public VendedorRepository(
+            SqlConnectionFactory connectionFactory)
         {
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<IEnumerable<VendedorResponse>> ListarAsync(VendedorFiltroRequest filtro)
+        public async Task<PagedResponse<VendedorResponse>> ListarAsync(
+            VendedorFiltroRequest filtro)
         {
             if (filtro.Pagina <= 0)
             {
@@ -31,13 +34,50 @@ namespace SantaLolla.Api.Repositories
                 filtro.TamanhoPagina = 5000;
             }
 
-            var offset = (filtro.Pagina - 1) * filtro.TamanhoPagina;
+            var offset =
+                (filtro.Pagina - 1) *
+                filtro.TamanhoPagina;
 
             const string sql = @"
                 SELECT
+                    COUNT(1)
+                FROM dbo.SETA_VENDEDORES
+                WHERE ISNULL(ATIVO, 1) = 1
+                  AND (
+                        DEMISSAO IS NULL
+                        OR DEMISSAO > CAST(GETDATE() AS DATE)
+                      )
+                  AND (
+                        @LastUpdateInicio IS NULL
+                        OR LASTUPDATE_ORIGEM >= @LastUpdateInicio
+                      )
+                  AND (
+                        @LastUpdateFim IS NULL
+                        OR LASTUPDATE_ORIGEM <= @LastUpdateFim
+                      )
+                  AND (
+                        @Rede IS NULL
+                        OR REDE = @Rede
+                      )
+                  AND (
+                        @CodigoLoja IS NULL
+                        OR ISNULL(
+                            NULLIF(EMPRESA_ACESSO, ''),
+                            EMPRESA
+                        ) = @CodigoLoja
+                      )
+                  AND (
+                        @CodigoVendedor IS NULL
+                        OR CODVENDEDOR = @CodigoVendedor
+                      );
+
+                SELECT
                     REDE AS Rede,
 
-                    ISNULL(NULLIF(EMPRESA_ACESSO, ''), EMPRESA) AS CodigoLoja,
+                    ISNULL(
+                        NULLIF(EMPRESA_ACESSO, ''),
+                        EMPRESA
+                    ) AS CodigoLoja,
 
                     ISNULL(
                         NULLIF(APELIDO_EMPRESA_ACESSO, ''),
@@ -63,41 +103,91 @@ namespace SantaLolla.Api.Repositories
 
                     LASTUPDATE_ORIGEM AS DataAtualizacao,
 
-                    CASE 
-                        WHEN ISNULL(ATIVO, 0) = 0 THEN 'Inativo'
-                        WHEN DEMISSAO IS NOT NULL AND DEMISSAO <= CAST(GETDATE() AS DATE) THEN 'Inativo'
+                    CASE
+                        WHEN ISNULL(ATIVO, 0) = 0
+                            THEN 'Inativo'
+
+                        WHEN DEMISSAO IS NOT NULL
+                         AND DEMISSAO <= CAST(GETDATE() AS DATE)
+                            THEN 'Inativo'
+
                         ELSE 'Ativo'
                     END AS Status
 
                 FROM dbo.SETA_VENDEDORES
                 WHERE ISNULL(ATIVO, 1) = 1
-                  AND (DEMISSAO IS NULL OR DEMISSAO > CAST(GETDATE() AS DATE))
-                  AND (@LastUpdateInicio IS NULL OR LASTUPDATE_ORIGEM >= @LastUpdateInicio)
-                  AND (@LastUpdateFim IS NULL OR LASTUPDATE_ORIGEM <= @LastUpdateFim)
-                  AND (@Rede IS NULL OR REDE = @Rede)
-                  AND (@CodigoLoja IS NULL OR ISNULL(NULLIF(EMPRESA_ACESSO, ''), EMPRESA) = @CodigoLoja)
-                  AND (@CodigoVendedor IS NULL OR CODVENDEDOR = @CodigoVendedor)
-                ORDER BY REDE,
-                         ISNULL(NULLIF(EMPRESA_ACESSO, ''), EMPRESA),
-                         CODVENDEDOR
+                  AND (
+                        DEMISSAO IS NULL
+                        OR DEMISSAO > CAST(GETDATE() AS DATE)
+                      )
+                  AND (
+                        @LastUpdateInicio IS NULL
+                        OR LASTUPDATE_ORIGEM >= @LastUpdateInicio
+                      )
+                  AND (
+                        @LastUpdateFim IS NULL
+                        OR LASTUPDATE_ORIGEM <= @LastUpdateFim
+                      )
+                  AND (
+                        @Rede IS NULL
+                        OR REDE = @Rede
+                      )
+                  AND (
+                        @CodigoLoja IS NULL
+                        OR ISNULL(
+                            NULLIF(EMPRESA_ACESSO, ''),
+                            EMPRESA
+                        ) = @CodigoLoja
+                      )
+                  AND (
+                        @CodigoVendedor IS NULL
+                        OR CODVENDEDOR = @CodigoVendedor
+                      )
+
+                ORDER BY
+                    REDE,
+                    ISNULL(
+                        NULLIF(EMPRESA_ACESSO, ''),
+                        EMPRESA
+                    ),
+                    CODVENDEDOR
+
                 OFFSET @Offset ROWS
                 FETCH NEXT @TamanhoPagina ROWS ONLY;
             ";
 
-            using var connection = _connectionFactory.CreateConnection();
+            var parametros = new
+            {
+                filtro.LastUpdateInicio,
+                filtro.LastUpdateFim,
+                filtro.Rede,
+                filtro.CodigoLoja,
+                filtro.CodigoVendedor,
+                Offset = offset,
+                filtro.TamanhoPagina
+            };
 
-            return await connection.QueryAsync<VendedorResponse>(
-                sql,
-                new
-                {
-                    filtro.LastUpdateInicio,
-                    filtro.LastUpdateFim,
-                    filtro.Rede,
-                    filtro.CodigoLoja,
-                    filtro.CodigoVendedor,
-                    Offset = offset,
-                    filtro.TamanhoPagina
-                }
+            using var connection =
+                _connectionFactory.CreateConnection();
+
+            using var resultado =
+                await connection.QueryMultipleAsync(
+                    sql,
+                    parametros
+                );
+
+            var total =
+                await resultado.ReadSingleAsync<int>();
+
+            var vendedores = (
+                await resultado.ReadAsync<VendedorResponse>()
+            ).ToList();
+
+            return PagedResponse<VendedorResponse>.Create(
+                vendedores,
+                total,
+                filtro.Pagina,
+                filtro.TamanhoPagina
             );
         }
     }

@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using SantaLolla.Api.Data;
 using SantaLolla.Api.Models.ClientesVarejo;
+using SantaLolla.Api.Models.PagedResponse;
 using SantaLolla.Api.Repositories.Interfaces;
 
 namespace SantaLolla.Api.Repositories
@@ -9,16 +10,20 @@ namespace SantaLolla.Api.Repositories
     {
         private readonly SqlConnectionFactory _connectionFactory;
 
-        public ClienteVarejoRepository(SqlConnectionFactory connectionFactory)
+        public ClienteVarejoRepository(
+            SqlConnectionFactory connectionFactory)
         {
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<IEnumerable<ClienteVarejoResponse>> ListarAsync(
+        public async Task<PagedResponse<ClienteVarejoResponse>> ListarAsync(
             ClienteVarejoFiltroRequest filtro
         )
         {
-            filtro.Pagina = filtro.Pagina <= 0 ? 1 : filtro.Pagina;
+            filtro.Pagina =
+                filtro.Pagina <= 0
+                    ? 1
+                    : filtro.Pagina;
 
             if (filtro.TamanhoPagina <= 0)
             {
@@ -30,12 +35,46 @@ namespace SantaLolla.Api.Repositories
                 filtro.TamanhoPagina = 5000;
             }
 
-            var offset = (filtro.Pagina - 1) * filtro.TamanhoPagina;
+            var offset =
+                (filtro.Pagina - 1) *
+                filtro.TamanhoPagina;
 
-            var nome = PrepararFiltroLike(filtro.Nome);
-            var cpfCnpj = PrepararFiltroLike(filtro.CpfCnpj);
+            var nome =
+                PrepararFiltroLike(filtro.Nome);
+
+            var cpfCnpj =
+                PrepararFiltroLike(filtro.CpfCnpj);
 
             const string sql = @"
+                SELECT
+                    COUNT(1)
+                FROM dbo.SETA_CLIENTES_VAREJO
+                WHERE ATIVO = 1
+                  AND (
+                        @Rede IS NULL
+                        OR REDE = @Rede
+                      )
+                  AND (
+                        @CodigoCliente IS NULL
+                        OR CODIGO_CLIENTE = @CodigoCliente
+                      )
+                  AND (
+                        @Nome IS NULL
+                        OR NOME LIKE @Nome
+                      )
+                  AND (
+                        @CpfCnpj IS NULL
+                        OR CPFCNPJ LIKE @CpfCnpj
+                      )
+                  AND (
+                        @AtualizadoInicio IS NULL
+                        OR ATUALIZADO >= @AtualizadoInicio
+                      )
+                  AND (
+                        @AtualizadoFim IS NULL
+                        OR ATUALIZADO <= @AtualizadoFim
+                      );
+
                 SELECT
                     REDE AS Rede,
                     CODIGO_CLIENTE AS CodigoCliente,
@@ -91,12 +130,30 @@ namespace SantaLolla.Api.Repositories
                     OBS AS Obs
                 FROM dbo.SETA_CLIENTES_VAREJO
                 WHERE ATIVO = 1
-                  AND (@Rede IS NULL OR REDE = @Rede)
-                  AND (@CodigoCliente IS NULL OR CODIGO_CLIENTE = @CodigoCliente)
-                  AND (@Nome IS NULL OR NOME LIKE @Nome)
-                  AND (@CpfCnpj IS NULL OR CPFCNPJ LIKE @CpfCnpj)
-                  AND (@AtualizadoInicio IS NULL OR ATUALIZADO >= @AtualizadoInicio)
-                  AND (@AtualizadoFim IS NULL OR ATUALIZADO <= @AtualizadoFim)
+                  AND (
+                        @Rede IS NULL
+                        OR REDE = @Rede
+                      )
+                  AND (
+                        @CodigoCliente IS NULL
+                        OR CODIGO_CLIENTE = @CodigoCliente
+                      )
+                  AND (
+                        @Nome IS NULL
+                        OR NOME LIKE @Nome
+                      )
+                  AND (
+                        @CpfCnpj IS NULL
+                        OR CPFCNPJ LIKE @CpfCnpj
+                      )
+                  AND (
+                        @AtualizadoInicio IS NULL
+                        OR ATUALIZADO >= @AtualizadoInicio
+                      )
+                  AND (
+                        @AtualizadoFim IS NULL
+                        OR ATUALIZADO <= @AtualizadoFim
+                      )
                 ORDER BY
                     REDE,
                     CODIGO_CLIENTE
@@ -104,32 +161,58 @@ namespace SantaLolla.Api.Repositories
                 FETCH NEXT @TamanhoPagina ROWS ONLY;
             ";
 
-            using var connection = _connectionFactory.CreateConnection();
+            var parametros = new
+            {
+                Rede =
+                    NormalizarTexto(filtro.Rede),
 
-            return await connection.QueryAsync<ClienteVarejoResponse>(
-                sql,
-                new
-                {
-                    Rede = NormalizarTexto(filtro.Rede),
-                    CodigoCliente = NormalizarTexto(filtro.CodigoCliente),
-                    Nome = nome,
-                    CpfCnpj = cpfCnpj,
-                    filtro.AtualizadoInicio,
-                    filtro.AtualizadoFim,
-                    Offset = offset,
-                    filtro.TamanhoPagina
-                }
+                CodigoCliente =
+                    NormalizarTexto(filtro.CodigoCliente),
+
+                Nome = nome,
+                CpfCnpj = cpfCnpj,
+
+                filtro.AtualizadoInicio,
+                filtro.AtualizadoFim,
+
+                Offset = offset,
+                filtro.TamanhoPagina
+            };
+
+            using var connection =
+                _connectionFactory.CreateConnection();
+
+            using var resultado =
+                await connection.QueryMultipleAsync(
+                    sql,
+                    parametros
+                );
+
+            var total =
+                await resultado.ReadSingleAsync<int>();
+
+            var clientes = (
+                await resultado.ReadAsync<ClienteVarejoResponse>()
+            ).ToList();
+
+            return PagedResponse<ClienteVarejoResponse>.Create(
+                clientes,
+                total,
+                filtro.Pagina,
+                filtro.TamanhoPagina
             );
         }
 
-        private static string? NormalizarTexto(string? valor)
+        private static string? NormalizarTexto(
+            string? valor)
         {
             return string.IsNullOrWhiteSpace(valor)
                 ? null
                 : valor.Trim();
         }
 
-        private static string? PrepararFiltroLike(string? valor)
+        private static string? PrepararFiltroLike(
+            string? valor)
         {
             if (string.IsNullOrWhiteSpace(valor))
             {

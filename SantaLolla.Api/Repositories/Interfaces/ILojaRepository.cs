@@ -1,9 +1,12 @@
 using SantaLolla.Api.Models.Lojas;
+using SantaLolla.Api.Models.PagedResponse;
 
 namespace SantaLolla.Api.Repositories.Interfaces
 {
     public interface ILojaRepository
     {
-        Task<IEnumerable<LojaResponse>> ListarAsync(LojaFiltroRequest filtro);
+        Task<PagedResponse<LojaResponse>> ListarAsync(
+            LojaFiltroRequest filtro
+        );
     }
 }

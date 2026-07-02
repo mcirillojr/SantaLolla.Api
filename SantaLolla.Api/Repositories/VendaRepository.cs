@@ -1,7 +1,8 @@
+using Dapper;
 using SantaLolla.Api.Data;
+using SantaLolla.Api.Models.PagedResponse;
 using SantaLolla.Api.Models.Vendas;
 using SantaLolla.Api.Repositories.Interfaces;
-using Dapper;
 
 namespace SantaLolla.Api.Repositories
 {
@@ -14,7 +15,8 @@ namespace SantaLolla.Api.Repositories
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<IEnumerable<VendaResponse>> ListarAsync(VendaFiltroRequest filtro)
+        public async Task<PagedResponse<VendaResponse>> ListarAsync(
+            VendaFiltroRequest filtro)
         {
             if (filtro.Pagina <= 0)
             {
@@ -31,12 +33,38 @@ namespace SantaLolla.Api.Repositories
                 filtro.TamanhoPagina = 5000;
             }
 
-            var offset = (filtro.Pagina - 1) * filtro.TamanhoPagina;
+            var offset =
+                (filtro.Pagina - 1) *
+                filtro.TamanhoPagina;
 
-            var notaFiscal = PrepararFiltroLike(filtro.NotaFiscal);
-            var obs = PrepararFiltroLike(filtro.Obs);
+            var notaFiscal =
+                PrepararFiltroLike(filtro.NotaFiscal);
+
+            var obs =
+                PrepararFiltroLike(filtro.Obs);
 
             const string sql = @"
+                SELECT
+                    COUNT(1)
+                FROM dbo.SETA_VENDAS_DETALHE
+                WHERE
+                    (@DataInicio IS NULL
+                        OR DATA_VENDA >= @DataInicio)
+                    AND (@DataFim IS NULL
+                        OR DATA_VENDA <= @DataFim)
+                    AND (@LastUpdateInicio IS NULL
+                        OR LASTUPDATE_ORIGEM >= @LastUpdateInicio)
+                    AND (@LastUpdateFim IS NULL
+                        OR LASTUPDATE_ORIGEM <= @LastUpdateFim)
+                    AND (@Rede IS NULL
+                        OR REDE = @Rede)
+                    AND (@CodigoLoja IS NULL
+                        OR CODIGO_EMPRESA = @CodigoLoja)
+                    AND (@NotaFiscal IS NULL
+                        OR NOTA_FISCAL LIKE @NotaFiscal)
+                    AND (@Obs IS NULL
+                        OR OBS LIKE @Obs);
+
                 SELECT
                     REDE AS Rede,
                     CODIGO_EMPRESA AS CodigoLoja,
@@ -44,36 +72,50 @@ namespace SantaLolla.Api.Repositories
                     ALIAS_ID AS AliasId,
                     APELIDO AS Apelido,
                     NOME AS Nome,
+
                     CODIGO_VENDA AS CodigoVenda,
                     DATA_VENDA AS DataVenda,
                     NOTA_FISCAL AS NotaFiscal,
                     SERIE AS Serie,
                     EMISSAONF AS EmissaoNf,
                     LASTUPDATE_ORIGEM AS DataAtualizacao,
+
                     CODCLIENTE AS CodigoCliente,
                     CLIENTE AS Cliente,
+
                     CODVENDEDOR AS CodigoVendedor,
                     VENDEDOR AS Vendedor,
+
                     CONDICOES AS Condicoes,
+
                     QTDE_ITENS AS QtdeItens,
                     AVISTA AS AVista,
                     APRAZO AS APrazo,
                     TOTAL AS Total,
                     FRETE AS Frete,
                     CUSTO AS Custo,
+
                     VENDA_IMPORTADA AS VendaImportada,
                     STATUS AS Status,
                     OBS AS Obs
                 FROM dbo.SETA_VENDAS_DETALHE
                 WHERE
-                    (@DataInicio IS NULL OR DATA_VENDA >= @DataInicio)
-                    AND (@DataFim IS NULL OR DATA_VENDA <= @DataFim)
-                    AND (@LastUpdateInicio IS NULL OR LASTUPDATE_ORIGEM >= @LastUpdateInicio)
-                    AND (@LastUpdateFim IS NULL OR LASTUPDATE_ORIGEM <= @LastUpdateFim)
-                    AND (@Rede IS NULL OR REDE = @Rede)
-                    AND (@CodigoLoja IS NULL OR CODIGO_EMPRESA = @CodigoLoja)
-                    AND (@NotaFiscal IS NULL OR NOTA_FISCAL LIKE @NotaFiscal)
-                    AND (@Obs IS NULL OR OBS LIKE @Obs)
+                    (@DataInicio IS NULL
+                        OR DATA_VENDA >= @DataInicio)
+                    AND (@DataFim IS NULL
+                        OR DATA_VENDA <= @DataFim)
+                    AND (@LastUpdateInicio IS NULL
+                        OR LASTUPDATE_ORIGEM >= @LastUpdateInicio)
+                    AND (@LastUpdateFim IS NULL
+                        OR LASTUPDATE_ORIGEM <= @LastUpdateFim)
+                    AND (@Rede IS NULL
+                        OR REDE = @Rede)
+                    AND (@CodigoLoja IS NULL
+                        OR CODIGO_EMPRESA = @CodigoLoja)
+                    AND (@NotaFiscal IS NULL
+                        OR NOTA_FISCAL LIKE @NotaFiscal)
+                    AND (@Obs IS NULL
+                        OR OBS LIKE @Obs)
                 ORDER BY
                     DATA_VENDA DESC,
                     LASTUPDATE_ORIGEM DESC,
@@ -84,27 +126,46 @@ namespace SantaLolla.Api.Repositories
                 FETCH NEXT @TamanhoPagina ROWS ONLY;
             ";
 
-            using var connection = _connectionFactory.CreateConnection();
+            var parametros = new
+            {
+                filtro.DataInicio,
+                filtro.DataFim,
+                filtro.LastUpdateInicio,
+                filtro.LastUpdateFim,
+                filtro.Rede,
+                filtro.CodigoLoja,
+                NotaFiscal = notaFiscal,
+                Obs = obs,
+                Offset = offset,
+                filtro.TamanhoPagina
+            };
 
-            return await connection.QueryAsync<VendaResponse>(
-                sql,
-                new
-                {
-                    filtro.DataInicio,
-                    filtro.DataFim,
-                    filtro.LastUpdateInicio,
-                    filtro.LastUpdateFim,
-                    filtro.Rede,
-                    filtro.CodigoLoja,
-                    NotaFiscal = notaFiscal,
-                    Obs = obs,
-                    Offset = offset,
-                    filtro.TamanhoPagina
-                }
+            using var connection =
+                _connectionFactory.CreateConnection();
+
+            using var resultado =
+                await connection.QueryMultipleAsync(
+                    sql,
+                    parametros
+                );
+
+            var total =
+                await resultado.ReadSingleAsync<int>();
+
+            var vendas = (
+                await resultado.ReadAsync<VendaResponse>()
+            ).ToList();
+
+            return PagedResponse<VendaResponse>.Create(
+                vendas,
+                total,
+                filtro.Pagina,
+                filtro.TamanhoPagina
             );
         }
 
-        private static string? PrepararFiltroLike(string? valor)
+        private static string? PrepararFiltroLike(
+            string? valor)
         {
             if (string.IsNullOrWhiteSpace(valor))
             {
