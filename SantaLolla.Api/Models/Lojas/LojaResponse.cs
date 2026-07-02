@@ -48,6 +48,12 @@ namespace SantaLolla.Api.Models.Lojas
         public string? Cep { get; set; }
 
         /// <summary>
+        /// Marca da loja.
+        /// </summary>
+        /// <remarks>Exemplo: SANTA LOLLA</remarks>
+        public string? Marca { get; set; }
+
+        /// <summary>
         /// Data/hora da última atualização do cadastro na origem.
         /// </summary>
         /// <remarks>Exemplo: 2026-06-11T07:44:02</remarks>

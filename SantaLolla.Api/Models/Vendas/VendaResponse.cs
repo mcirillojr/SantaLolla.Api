@@ -74,6 +74,14 @@ namespace SantaLolla.Api.Models.Vendas
         [JsonPropertyName("notaFiscal")]
         public string? NotaFiscal { get; set; }
 
+
+        /// <summary>
+        /// Número da série da nota fiscal autorizada relacionada à venda.
+        /// </summary>
+        /// <remarks>Exemplo: 1</remarks>
+        [JsonPropertyName("serie")]
+        public string? Serie { get; set; }
+
         /// <summary>
         /// Data de emissão da nota fiscal, quando houver.
         /// </summary>

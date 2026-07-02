@@ -47,6 +47,7 @@ namespace SantaLolla.Api.Repositories
                     CODIGO_VENDA AS CodigoVenda,
                     DATA_VENDA AS DataVenda,
                     NOTA_FISCAL AS NotaFiscal,
+                    SERIE AS Serie,
                     EMISSAONF AS EmissaoNf,
                     LASTUPDATE_ORIGEM AS DataAtualizacao,
                     CODCLIENTE AS CodigoCliente,

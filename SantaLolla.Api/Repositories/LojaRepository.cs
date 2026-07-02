@@ -40,6 +40,7 @@ namespace SantaLolla.Api.Repositories
                     APELIDO AS NomeFantasia,
                     CNPJ AS Cnpj,
                     CEP AS Cep,
+                    MARCA AS Marca,
                     LASTUPDATE_ORIGEM AS DataAtualizacao
                 FROM dbo.SETA_LOJAS
                 WHERE ISNULL(ATIVO, 1) = 1
