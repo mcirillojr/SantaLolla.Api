@@ -26,7 +26,9 @@ SantaLolla.Api/
 ├── Controllers/                    # Camada de Apresentação
 │   ├── AuthController.cs          # Gerenciamento de autenticação
 │   ├── VendasController.cs        # Operações de vendas
+│   ├── VendasProdutosController.cs    # Operações de produtos de vendas (NOVO)
 │   ├── EstoquesController.cs      # Operações de estoques
+│   ├── ClientesVarejoController.cs    # Operações de clientes de varejo (NOVO)
 │   ├── LojasController.cs         # Operações de lojas
 │   ├── VendedoresController.cs    # Operações de vendedores
 │   ├── HealthController.cs        # Health check
@@ -565,11 +567,75 @@ Response (201 Created):
 }
 ```
 
+#### POST `/api/vendas/produtos` - Consultar Produtos de Vendas (NOVO)
+Retorna os produtos/itens agrupados por venda com filtros detalhados.
+
+```
+Request:
+GET /api/vendasprodutos?dataVendaInicio=2024-01-01&dataVendaFim=2024-01-31&pagina=1&tamanhoPagina=50 HTTP/1.1
+Authorization: Bearer {JWT_TOKEN}
+
+Query Parameters:
+- dataVendaInicio (DateTime, opcional): Data inicial da venda
+- dataVendaFim (DateTime, opcional): Data final da venda
+- lastUpdateInicio (DateTime, opcional): Data inicial de atualização
+- lastUpdateFim (DateTime, opcional): Data final de atualização
+- rede (string, opcional): Código da rede
+- vendedor (string, opcional): Código do vendedor
+- referencia (string, opcional): Referência do produto
+- loja (string, opcional): Código da loja
+- cliente (string, opcional): Código do cliente
+- pagina (int, padrão: 1): Número da página
+- tamanhoPagina (int, padrão: 500): Registros por página (máx: 5000)
+
+Response (200 OK): Resultado paginado com vendas e seus produtos
+```
+
+> ⚠️ Requer autenticação JWT. A paginação é realizada por venda, não por item.
+
 ---
 
 ### 4. Estoques (`/api/estoques`)
 
-#### GET `/api/estoques` - Listar Estoques
+#### GET `/api/estoques/total-agrupado` - Listar Estoques Total Agrupado
+Lista estoques agrupados por produto, marca, tamanho e coleção com totalizações.
+
+```
+Request:
+GET /api/estoques/total-agrupado?nomeLoja=%25oscar%25&referencia=%25038F%25&pagina=1&tamanhoPagina=50 HTTP/1.1
+Authorization: Bearer {JWT_TOKEN}
+
+Query Parameters:
+- nomeLoja (string, opcional): Nome da loja com suporte a LIKE (ex: %oscar%)
+- referencia (string, opcional): Referência do produto com suporte a LIKE
+- descricaoColecao (string, opcional): Descrição da coleção com suporte a LIKE
+- pagina (int, padrão: 1): Número da página
+- tamanhoPagina (int, padrão: 500): Registros por página (máx: 5000)
+
+Response (200 OK):
+[
+  {
+    "rede": "RD01",
+    "codigoProduto": "123681",
+    "descricaoProduto": "TENIS SUEDE BAKED",
+    "referencia": "038F.11E4.0048.0157",
+    "marca": "SANTA LOLLA",
+    "grupo": "CALÇADOS",
+    "descricaoColecao": "VERAO 2027",
+    "quantidadeTotal": 3,
+    "custo": 45.50,
+    "preco": 89.90,
+    "preco1": 85.00,
+    "preco2": 75.00
+  }
+]
+```
+
+> ⚠️ Requer autenticação JWT. Retorna agregações com SUM de quantidade e AVG de preços.
+
+---
+
+#### GET `/api/estoques`
 Lista estoques com filtros.
 
 ```
@@ -596,36 +662,94 @@ Response (200 OK):
 
 ---
 
-### 5. Lojas (`/api/lojas`)
+### 5. Clientes Varejo (`/api/clientesvarejo`) - NOVO
 
-#### GET `/api/lojas` - Listar Lojas
-Lista todas as lojas cadastradas.
+#### GET `/api/clientesvarejo` - Listar Clientes de Varejo
+Consulta clientes de varejo com filtros avançados.
 
 ```
 Request:
-GET /api/lojas HTTP/1.1
+GET /api/clientesvarejo?rede=RD01&nome=%25Marcio%25&pagina=1&tamanhoPagina=50 HTTP/1.1
 Authorization: Bearer {JWT_TOKEN}
+
+Query Parameters:
+- rede (string, opcional): Código da rede
+- codigoCliente (string, opcional): Código do cliente
+- cpfCnpj (string, opcional): CPF ou CNPJ
+- nome (string, opcional): Nome do cliente com suporte a LIKE (ex: %Marcio%)
+- atualizadoInicio (DateTime, opcional): Data inicial de atualização
+- atualizadoFim (DateTime, opcional): Data final de atualização
+- pagina (int, padrão: 1): Número da página
+- tamanhoPagina (int, padrão: 500): Registros por página (máx: 5000)
 
 Response (200 OK):
 {
-  "lojas": [
+  "items": [
     {
-      "id": "L001",
       "rede": "RD01",
-      "nome": "Loja Centro",
-      "endereco": "Rua Principal, 123",
+      "codigoCliente": "CLI001",
+      "cpfCnpj": "12345678901234",
+      "nome": "Marcio Silva",
+      "email": "marcio@example.com",
+      "telefone": "(11) 99999-9999",
       "cidade": "São Paulo",
-      "estado": "SP"
+      "estado": "SP",
+      "status": "ativo",
+      "atualizado": "2024-01-15T10:00:00Z"
     }
-  ]
+  ],
+  "pagina": 1,
+  "totalPaginas": 10,
+  "totalRecords": 450
 }
 ```
 
-> ⚠️ Requer autenticação JWT
+> ⚠️ Requer autenticação JWT. Suporta filtro de nome com LIKE.
 
 ---
 
-### 6. Vendedores (`/api/vendedores`)
+### 6. Lojas (`/api/lojas`)
+
+#### GET `/api/lojas` - Listar Lojas (ATUALIZADO)
+Lista todas as lojas cadastradas com filtros e paginação.
+
+```
+Request:
+GET /api/lojas?rede=RD01&codigoLoja=L001&lastUpdateInicio=2024-01-01&lastUpdateFim=2024-01-31&pagina=1&tamanhoPagina=50 HTTP/1.1
+Authorization: Bearer {JWT_TOKEN}
+
+Query Parameters:
+- rede (string, opcional): Código da rede
+- codigoLoja (string, opcional): Código da loja
+- lastUpdateInicio (DateTime, opcional): Data inicial de atualização
+- lastUpdateFim (DateTime, opcional): Data final de atualização
+- pagina (int, padrão: 1): Número da página
+- tamanhoPagina (int, padrão: 500): Registros por página (máx: 5000)
+
+Response (200 OK):
+{
+  "items": [
+    {
+      "rede": "RD01",
+      "codigoLoja": "L001",
+      "nomeLoja": "Loja Centro",
+      "endereco": "Rua Principal, 123",
+      "cidade": "São Paulo",
+      "estado": "SP",
+      "lastUpdate": "2024-01-15T10:00:00Z"
+    }
+  ],
+  "pagina": 1,
+  "totalPaginas": 5,
+  "totalRecords": 245
+}
+```
+
+> ⚠️ Requer autenticação JWT. Resultado paginado com informações de lojas.
+
+---
+
+### 7. Vendedores (`/api/vendedores`)
 
 #### GET `/api/vendedores` - Listar Vendedores
 Lista todos os vendedores cadastrados.
@@ -920,9 +1044,47 @@ curl -X GET http://localhost:5000/api/health \
 
 ---
 
+## 📋 Alterações Recentes (Changelog)
+
+### v1.1.0 - [2024-01-XX]
+
+#### ✅ Novos Endpoints Adicionados
+
+1. **GET `/api/vendasprodutos`** - Operações de Produtos de Vendas (NOVO)
+   - Retorna produtos/itens agrupados por venda
+   - Filtros: dataVendaInicio/Fim, lastUpdateInicio/Fim, rede, vendedor, referência, loja, cliente
+   - Paginação por venda (não por item)
+   - Padrão: 500 vendas por página (máx: 5000)
+
+2. **GET `/api/clientesvarejo`** - Consulta de Clientes de Varejo (NOVO)
+   - Filtra clientes por rede, código, CPF/CNPJ, nome
+   - Suporte a filtro LIKE no campo nome
+   - Validação de períodos de atualização
+   - Padrão: 500 registros por página (máx: 5000)
+
+3. **GET `/api/estoques/total-agrupado`** - Estoques Agrupados e Totalizados (NOVO)
+   - Agrupa estoques por produto, marca, tamanho e coleção
+   - Retorna: SUM(quantidade) e AVG(preços)
+   - Filtros disponíveis: nomeLoja (LIKE), referência (LIKE), descricaoColecao
+   - Removido: Campo `codigoColecao` conforme requisição
+   - Mantido: Campo `descricaoColecao`
+
+#### ⚙️ Endpoints Atualizados
+
+1. **GET `/api/lojas`** - Melhorias na Paginação
+   - Adicionados filtros: `rede`, `codigoLoja`, `lastUpdateInicio`, `lastUpdateFim`
+   - Paginação: 500 registros por página (máx: 5000)
+   - Adicionada validação de períodos
+
+2. **GET `/api/vendas`** - Já suportava filtros, mantém compatibilidade
+   - Validação obrigatória de períodos (dataInicio/Fim ou lastUpdateInicio/Fim)
+   - Suporta filtros de rede, loja e observação
+
+---
+
 ## 📞 Contato e Suporte
 
-- **Repositório**: https://github.com/mcirillojr/AlterVision.Api
+- **Repositório**: https://github.com/mcirillojr/SantaLolla.Api
 - **Desenvolvedor**: mcirillojr
 - **Ambiente**: ASP.NET Core 8.0
 
