@@ -46,7 +46,7 @@ namespace SantaLolla.Api.Repositories
             const string sql = @"
                 SELECT
                     COUNT(1)
-                FROM dbo.SETA_VENDAS_DETALHE
+                FROM dbo.SETA_VENDAS_DETALHE (NOLOCK)
                 WHERE
                     (@DataInicio IS NULL
                         OR DATA_VENDA >= @DataInicio)
@@ -98,7 +98,7 @@ namespace SantaLolla.Api.Repositories
                     VENDA_IMPORTADA AS VendaImportada,
                     STATUS AS Status,
                     OBS AS Obs
-                FROM dbo.SETA_VENDAS_DETALHE
+                FROM dbo.SETA_VENDAS_DETALHE (NOLOCK)
                 WHERE
                     (@DataInicio IS NULL
                         OR DATA_VENDA >= @DataInicio)

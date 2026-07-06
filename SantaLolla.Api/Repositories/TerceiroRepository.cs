@@ -23,7 +23,7 @@ namespace SantaLolla.Api.Repositories
                     CLIENT_ID AS ClientId,
                     CLIENT_SECRET_HASH AS ClientSecretHash,
                     ATIVO AS Ativo
-                FROM dbo.SETA_API_TERCEIROS
+                FROM dbo.SETA_API_TERCEIROS (NOLOCK)
                 WHERE CLIENT_ID = @ClientId;
             ";
 

@@ -47,7 +47,7 @@ namespace SantaLolla.Api.Repositories
             const string sql = @"
                 SELECT
                     COUNT(1)
-                FROM dbo.SETA_ESTOQUE_ATUAL
+                FROM dbo.SETA_ESTOQUE_ATUAL (NOLOCK)
                 WHERE
                     (@Rede IS NULL OR REDE = @Rede)
                     AND (

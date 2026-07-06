@@ -38,7 +38,7 @@ namespace SantaLolla.Api.Repositories
             const string sql = @"
                 SELECT
                     COUNT(1)
-                FROM dbo.SETA_LOJAS
+                FROM dbo.SETA_LOJAS (NOLOCK)
                 WHERE ISNULL(ATIVO, 1) = 1
                   AND (@LastUpdateInicio IS NULL
                        OR LASTUPDATE_ORIGEM >= @LastUpdateInicio)
@@ -57,7 +57,7 @@ namespace SantaLolla.Api.Repositories
                     CEP AS Cep,
                     MARCA AS Marca,
                     LASTUPDATE_ORIGEM AS DataAtualizacao
-                FROM dbo.SETA_LOJAS
+                FROM dbo.SETA_LOJAS (NOLOCK)
                 WHERE ISNULL(ATIVO, 1) = 1
                   AND (@LastUpdateInicio IS NULL
                        OR LASTUPDATE_ORIGEM >= @LastUpdateInicio)

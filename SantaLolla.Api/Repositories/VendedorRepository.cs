@@ -41,7 +41,7 @@ namespace SantaLolla.Api.Repositories
             const string sql = @"
                 SELECT
                     COUNT(1)
-                FROM dbo.SETA_VENDEDORES
+                FROM dbo.SETA_VENDEDORES (NOLOCK)
                 WHERE ISNULL(ATIVO, 1) = 1
                   AND (
                         DEMISSAO IS NULL
@@ -114,7 +114,7 @@ namespace SantaLolla.Api.Repositories
                         ELSE 'Ativo'
                     END AS Status
 
-                FROM dbo.SETA_VENDEDORES
+                FROM dbo.SETA_VENDEDORES (NOLOCK)
                 WHERE ISNULL(ATIVO, 1) = 1
                   AND (
                         DEMISSAO IS NULL

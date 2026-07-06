@@ -56,7 +56,7 @@ namespace SantaLolla.Api.Repositories
                     SELECT
                         REDE,
                         CODIGO_VENDA
-                    FROM dbo.SETA_VENDAS_PRODUTOS
+                    FROM dbo.SETA_VENDAS_PRODUTOS (NOLOCK)
                     WHERE 1 = 1
                       AND (
                             @Rede IS NULL
@@ -110,7 +110,7 @@ namespace SantaLolla.Api.Repositories
                         CODIGO_VENDA,
                         MAX(DATA_VENDA) AS DATA_VENDA,
                         MAX(LASTUPDATE_ORIGEM) AS LASTUPDATE_ORIGEM
-                    FROM dbo.SETA_VENDAS_PRODUTOS
+                    FROM dbo.SETA_VENDAS_PRODUTOS (NOLOCK)
                     WHERE 1 = 1
                       AND (
                             @Rede IS NULL
@@ -197,9 +197,9 @@ namespace SantaLolla.Api.Repositories
                     P.CUSTO AS Custo,
                     P.COLECAO AS Colecao,
                     P.FORNECEDOR AS Fornecedor
-                FROM dbo.SETA_VENDAS_PRODUTOS P
+                FROM dbo.SETA_VENDAS_PRODUTOS P (NOLOCK)
 
-                INNER JOIN VendasFiltradas VF
+                INNER JOIN VendasFiltradas VF (NOLOCK)
                     ON VF.REDE = P.REDE
                    AND VF.CODIGO_VENDA = P.CODIGO_VENDA
 

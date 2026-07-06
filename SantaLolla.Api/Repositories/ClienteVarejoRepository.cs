@@ -128,7 +128,7 @@ namespace SantaLolla.Api.Repositories
                     ATUALIZADO AS Atualizado,
 
                     OBS AS Obs
-                FROM dbo.SETA_CLIENTES_VAREJO
+                FROM dbo.SETA_CLIENTES_VAREJO (NO LOCK)
                 WHERE ATIVO = 1
                   AND (
                         @Rede IS NULL
