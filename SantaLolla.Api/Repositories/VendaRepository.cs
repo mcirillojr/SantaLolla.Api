@@ -75,6 +75,7 @@ namespace SantaLolla.Api.Repositories
 
                     CODIGO_VENDA AS CodigoVenda,
                     DATA_VENDA AS DataVenda,
+                    HORA_VENDA AS HoraVenda,
                     NOTA_FISCAL AS NotaFiscal,
                     SERIE AS Serie,
                     EMISSAONF AS EmissaoNf,

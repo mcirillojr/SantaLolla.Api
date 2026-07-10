@@ -68,6 +68,13 @@ namespace SantaLolla.Api.Models.Vendas
         public DateTime DataVenda { get; set; }
 
         /// <summary>
+        /// Hora da venda no formato HH:MM.
+        /// </summary>
+        /// <remarks>Exemplo: 14:30</remarks>
+        [JsonPropertyName("horaVenda")]
+        public string? HoraVenda { get; set; }
+
+        /// <summary>
         /// Número da nota fiscal autorizada relacionada à venda.
         /// </summary>
         /// <remarks>Exemplo: 00012345</remarks>
