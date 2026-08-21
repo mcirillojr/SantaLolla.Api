@@ -36,6 +36,10 @@ namespace SantaLolla.Api.Repositories
             var offset =
                 (filtro.Pagina - 1) *
                 filtro.TamanhoPagina;
+            var codigoVenda =
+                string.IsNullOrWhiteSpace(filtro.CodigoVenda)
+                ? null
+                : filtro.CodigoVenda.Trim();
 
             var notaFiscal =
                 PrepararFiltroLike(filtro.NotaFiscal);
@@ -60,6 +64,8 @@ namespace SantaLolla.Api.Repositories
                         OR REDE = @Rede)
                     AND (@CodigoLoja IS NULL
                         OR CODIGO_EMPRESA = @CodigoLoja)
+                    AND (@CodigoVenda IS NULL
+                        OR CODIGO_VENDA = @CodigoVenda)
                     AND (@NotaFiscal IS NULL
                         OR NOTA_FISCAL LIKE @NotaFiscal)
                     AND (@Obs IS NULL
@@ -113,6 +119,8 @@ namespace SantaLolla.Api.Repositories
                         OR REDE = @Rede)
                     AND (@CodigoLoja IS NULL
                         OR CODIGO_EMPRESA = @CodigoLoja)
+                    AND (@CodigoVenda IS NULL
+                        OR CODIGO_VENDA = @CodigoVenda)
                     AND (@NotaFiscal IS NULL
                         OR NOTA_FISCAL LIKE @NotaFiscal)
                     AND (@Obs IS NULL
@@ -135,6 +143,7 @@ namespace SantaLolla.Api.Repositories
                 filtro.LastUpdateFim,
                 filtro.Rede,
                 filtro.CodigoLoja,
+                filtro.CodigoVenda,
                 NotaFiscal = notaFiscal,
                 Obs = obs,
                 Offset = offset,

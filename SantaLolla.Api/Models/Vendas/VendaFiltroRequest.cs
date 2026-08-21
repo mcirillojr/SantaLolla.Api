@@ -50,6 +50,13 @@ namespace SantaLolla.Api.Models.Vendas
         public string? CodigoLoja { get; set; }
 
         /// <summary>
+        /// Código da venda.
+        /// </summary>
+        /// <remarks>Exemplo: 123456</remarks>
+        [JsonPropertyName("codigoVenda")]
+        public string? CodigoVenda { get; set; }
+
+        /// <summary>
         /// Número da nota fiscal.
         /// Pesquisa usando LIKE.
         /// Pode informar somente parte do número ou usar percentual.
