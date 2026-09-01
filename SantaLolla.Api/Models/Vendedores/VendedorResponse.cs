@@ -31,10 +31,17 @@ namespace SantaLolla.Api.Models.Vendedores
         public string? NomeLoja { get; set; }
 
         /// <summary>
+        /// Nome da marca.
+        /// </summary>
+        /// <remarks>Exemplo: SANTALOLLA</remarks>
+        [JsonPropertyName("marca")]
+        public string? Marca { get; set; }
+
+        /// <summary>
         /// Código do vendedor.
         /// </summary>
         /// <remarks>Exemplo: 00084745</remarks>
-        
+
         [JsonPropertyName("codigoVendedor")]
         public string CodigoVendedor { get; set; } = string.Empty;
 

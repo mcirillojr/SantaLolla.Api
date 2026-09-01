@@ -299,5 +299,19 @@ namespace SantaLolla.Api.Models.ClientesVarejo
         /// </remarks>
         [JsonPropertyName("obs")]
         public string? Obs { get; set; }
+
+        /// <summary>
+        /// Nome da marca relacionada à última compra do cliente.
+        /// </summary>
+        /// <remarks>Exemplo: SANTA LOLLA</remarks>
+        [JsonPropertyName("marca")]
+        public string? Marca { get; set; }
+
+        /// <summary>
+        /// Data da última compra válida do cliente.
+        /// </summary>
+        /// <remarks>Exemplo: 2026-08-25</remarks>
+        [JsonPropertyName("dataUltimaCompra")]
+        public DateTime? DataUltimaCompra { get; set; }
     }
 }

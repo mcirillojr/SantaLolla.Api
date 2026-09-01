@@ -12,7 +12,6 @@ namespace SantaLolla.Api.Models.Vendas
         /// Código da rede de origem.
         /// </summary>
         /// <remarks>Exemplo: rede000001</remarks>
-        
         [JsonPropertyName("rede")]
         public string Rede { get; set; } = string.Empty;
 
@@ -20,7 +19,6 @@ namespace SantaLolla.Api.Models.Vendas
         /// Código da loja/empresa da venda.
         /// </summary>
         /// <remarks>Exemplo: 00000001</remarks>
-        
         [JsonPropertyName("codigoLoja")]
         public string CodigoLoja { get; set; } = string.Empty;
 
@@ -63,7 +61,6 @@ namespace SantaLolla.Api.Models.Vendas
         /// Data da venda.
         /// </summary>
         /// <remarks>Exemplo: 2026-06-11</remarks>
-        
         [JsonPropertyName("dataVenda")]
         public DateTime DataVenda { get; set; }
 
@@ -80,7 +77,6 @@ namespace SantaLolla.Api.Models.Vendas
         /// <remarks>Exemplo: 00012345</remarks>
         [JsonPropertyName("notaFiscal")]
         public string? NotaFiscal { get; set; }
-
 
         /// <summary>
         /// Número da série da nota fiscal autorizada relacionada à venda.
@@ -119,7 +115,6 @@ namespace SantaLolla.Api.Models.Vendas
         /// Código do vendedor da venda.
         /// </summary>
         /// <remarks>Exemplo: 00084745</remarks>
-        
         [JsonPropertyName("codigoVendedor")]
         public string CodigoVendedor { get; set; } = string.Empty;
 
@@ -136,10 +131,35 @@ namespace SantaLolla.Api.Models.Vendas
         public string? Condicoes { get; set; }
 
         /// <summary>
+        /// Quantidade de parcelas/títulos financeiros da venda.
+        /// </summary>
+        /// <remarks>Exemplo: 2</remarks>
+        [JsonPropertyName("qtdeParcelas")]
+        public int QtdeParcelas { get; set; }
+
+        /// <summary>
+        /// Parcelas/títulos financeiros da venda.
+        /// </summary>
+        [JsonPropertyName("parcelas")]
+        public List<VendaParcelaResponse> Parcelas { get; set; } = new();
+
+        /// <summary>
+        /// Valor total dos títulos financeiros da venda.
+        /// </summary>
+        /// <remarks>Exemplo: 238.80</remarks>
+        [JsonPropertyName("valorTitulos")]
+        public decimal ValorTitulos { get; set; }
+
+        /// <summary>
+        /// Campo auxiliar utilizado internamente para receber o JSON das parcelas do banco.
+        /// </summary>
+        [JsonIgnore]
+        public string? ParcelasJson { get; set; }
+
+        /// <summary>
         /// Quantidade total de itens da venda.
         /// </summary>
         /// <remarks>Exemplo: 2.0000</remarks>
-        
         [JsonPropertyName("qtdeItens")]
         public decimal QtdeItens { get; set; }
 
@@ -147,7 +167,6 @@ namespace SantaLolla.Api.Models.Vendas
         /// Valor pago à vista.
         /// </summary>
         /// <remarks>Exemplo: 100.00</remarks>
-        
         [JsonPropertyName("aVista")]
         public decimal AVista { get; set; }
 
@@ -155,7 +174,6 @@ namespace SantaLolla.Api.Models.Vendas
         /// Valor pago a prazo.
         /// </summary>
         /// <remarks>Exemplo: 0.00</remarks>
-      
         [JsonPropertyName("aPrazo")]
         public decimal APrazo { get; set; }
 
@@ -163,21 +181,18 @@ namespace SantaLolla.Api.Models.Vendas
         /// Valor total da venda.
         /// </summary>
         /// <remarks>Exemplo: 199.90</remarks>
-        
         [JsonPropertyName("total")]
         public decimal Total { get; set; }
 
         /// <summary>
         /// Valor do frete.
         /// </summary>
-        
         [JsonPropertyName("frete")]
         public decimal Frete { get; set; }
 
         /// <summary>
         /// Custo total da venda.
         /// </summary>
-      
         [JsonPropertyName("custo")]
         public decimal Custo { get; set; }
 

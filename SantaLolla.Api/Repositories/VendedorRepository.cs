@@ -41,116 +41,128 @@ namespace SantaLolla.Api.Repositories
             const string sql = @"
                 SELECT
                     COUNT(1)
-                FROM dbo.SETA_VENDEDORES (NOLOCK)
-                WHERE ISNULL(ATIVO, 1) = 1
+                FROM dbo.SETA_VENDEDORES V WITH (NOLOCK)
+                WHERE ISNULL(V.ATIVO, 1) = 1
                   AND (
-                        DEMISSAO IS NULL
-                        OR DEMISSAO > CAST(GETDATE() AS DATE)
+                        V.DEMISSAO IS NULL
+                        OR V.DEMISSAO > CAST(GETDATE() AS DATE)
                       )
                   AND (
                         @LastUpdateInicio IS NULL
-                        OR LASTUPDATE_ORIGEM >= @LastUpdateInicio
+                        OR V.LASTUPDATE_ORIGEM >= @LastUpdateInicio
                       )
                   AND (
                         @LastUpdateFim IS NULL
-                        OR LASTUPDATE_ORIGEM <= @LastUpdateFim
+                        OR V.LASTUPDATE_ORIGEM <= @LastUpdateFim
                       )
                   AND (
                         @Rede IS NULL
-                        OR REDE = @Rede
+                        OR V.REDE = @Rede
                       )
                   AND (
                         @CodigoLoja IS NULL
                         OR ISNULL(
-                            NULLIF(EMPRESA_ACESSO, ''),
-                            EMPRESA
+                            NULLIF(V.EMPRESA_ACESSO, ''),
+                            V.EMPRESA
                         ) = @CodigoLoja
                       )
                   AND (
                         @CodigoVendedor IS NULL
-                        OR CODVENDEDOR = @CodigoVendedor
+                        OR V.CODVENDEDOR = @CodigoVendedor
                       );
 
                 SELECT
-                    REDE AS Rede,
+                    V.REDE AS Rede,
 
                     ISNULL(
-                        NULLIF(EMPRESA_ACESSO, ''),
-                        EMPRESA
+                        NULLIF(V.EMPRESA_ACESSO, ''),
+                        V.EMPRESA
                     ) AS CodigoLoja,
 
                     ISNULL(
-                        NULLIF(APELIDO_EMPRESA_ACESSO, ''),
-                        APELIDO_EMPRESA
+                        NULLIF(V.APELIDO_EMPRESA_ACESSO, ''),
+                        V.APELIDO_EMPRESA
                     ) AS NomeLoja,
 
-                    CODVENDEDOR AS CodigoVendedor,
+                    L.MARCA AS Marca,
+
+                    V.CODVENDEDOR AS CodigoVendedor,
 
                     ISNULL(
-                        NULLIF(NOME_VENDEDOR, ''),
-                        VENDEDOR
+                        NULLIF(V.NOME_VENDEDOR, ''),
+                        V.VENDEDOR
                     ) AS Nome,
 
-                    NULLIF(CPFCNPJ_VENDEDOR, '') AS Cpf,
+                    NULLIF(V.CPFCNPJ_VENDEDOR, '') AS Cpf,
 
-                    DESCRICAO_ATIVIDADE AS Cargo,
+                    V.DESCRICAO_ATIVIDADE AS Cargo,
 
-                    VENDEDOR AS Apelido,
+                    V.VENDEDOR AS Apelido,
 
-                    ADMISSAO AS DataAdmissao,
+                    V.ADMISSAO AS DataAdmissao,
 
-                    DEMISSAO AS DataDemissao,
+                    V.DEMISSAO AS DataDemissao,
 
-                    LASTUPDATE_ORIGEM AS DataAtualizacao,
+                    V.LASTUPDATE_ORIGEM AS DataAtualizacao,
 
                     CASE
-                        WHEN ISNULL(ATIVO, 0) = 0
+                        WHEN ISNULL(V.ATIVO, 0) = 0
                             THEN 'Inativo'
 
-                        WHEN DEMISSAO IS NOT NULL
-                         AND DEMISSAO <= CAST(GETDATE() AS DATE)
+                        WHEN V.DEMISSAO IS NOT NULL
+                         AND V.DEMISSAO <= CAST(GETDATE() AS DATE)
                             THEN 'Inativo'
 
                         ELSE 'Ativo'
                     END AS Status
 
-                FROM dbo.SETA_VENDEDORES (NOLOCK)
-                WHERE ISNULL(ATIVO, 1) = 1
+                FROM dbo.SETA_VENDEDORES V WITH (NOLOCK)
+
+                LEFT JOIN dbo.SETA_LOJAS L WITH (NOLOCK)
+                    ON L.REDE = V.REDE
+                   AND L.CODIGO_EMPRESA =
+                       ISNULL(
+                           NULLIF(V.EMPRESA_ACESSO, ''),
+                           V.EMPRESA
+                       )
+                   AND L.ATIVO = 1
+
+                WHERE ISNULL(V.ATIVO, 1) = 1
                   AND (
-                        DEMISSAO IS NULL
-                        OR DEMISSAO > CAST(GETDATE() AS DATE)
+                        V.DEMISSAO IS NULL
+                        OR V.DEMISSAO > CAST(GETDATE() AS DATE)
                       )
                   AND (
                         @LastUpdateInicio IS NULL
-                        OR LASTUPDATE_ORIGEM >= @LastUpdateInicio
+                        OR V.LASTUPDATE_ORIGEM >= @LastUpdateInicio
                       )
                   AND (
                         @LastUpdateFim IS NULL
-                        OR LASTUPDATE_ORIGEM <= @LastUpdateFim
+                        OR V.LASTUPDATE_ORIGEM <= @LastUpdateFim
                       )
                   AND (
                         @Rede IS NULL
-                        OR REDE = @Rede
+                        OR V.REDE = @Rede
                       )
                   AND (
                         @CodigoLoja IS NULL
                         OR ISNULL(
-                            NULLIF(EMPRESA_ACESSO, ''),
-                            EMPRESA
+                            NULLIF(V.EMPRESA_ACESSO, ''),
+                            V.EMPRESA
                         ) = @CodigoLoja
                       )
                   AND (
                         @CodigoVendedor IS NULL
-                        OR CODVENDEDOR = @CodigoVendedor
+                        OR V.CODVENDEDOR = @CodigoVendedor
                       )
 
                 ORDER BY
-                    REDE,
+                    V.REDE,
                     ISNULL(
-                        NULLIF(EMPRESA_ACESSO, ''),
-                        EMPRESA
+                        NULLIF(V.EMPRESA_ACESSO, ''),
+                        V.EMPRESA
                     ),
-                    CODVENDEDOR
+                    V.CODVENDEDOR
 
                 OFFSET @Offset ROWS
                 FETCH NEXT @TamanhoPagina ROWS ONLY;

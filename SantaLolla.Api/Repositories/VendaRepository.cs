@@ -3,6 +3,7 @@ using SantaLolla.Api.Data;
 using SantaLolla.Api.Models.PagedResponse;
 using SantaLolla.Api.Models.Vendas;
 using SantaLolla.Api.Repositories.Interfaces;
+using System.Text.Json;
 
 namespace SantaLolla.Api.Repositories
 {
@@ -36,10 +37,11 @@ namespace SantaLolla.Api.Repositories
             var offset =
                 (filtro.Pagina - 1) *
                 filtro.TamanhoPagina;
+
             var codigoVenda =
                 string.IsNullOrWhiteSpace(filtro.CodigoVenda)
-                ? null
-                : filtro.CodigoVenda.Trim();
+                    ? null
+                    : filtro.CodigoVenda.Trim();
 
             var notaFiscal =
                 PrepararFiltroLike(filtro.NotaFiscal);
@@ -95,6 +97,10 @@ namespace SantaLolla.Api.Repositories
 
                     CONDICOES AS Condicoes,
 
+                    QTDE_PARCELAS AS QtdeParcelas,
+                    PARCELAS AS ParcelasJson,
+                    VALOR_TITULOS AS ValorTitulos,
+
                     QTDE_ITENS AS QtdeItens,
                     AVISTA AS AVista,
                     APRAZO AS APrazo,
@@ -143,7 +149,7 @@ namespace SantaLolla.Api.Repositories
                 filtro.LastUpdateFim,
                 filtro.Rede,
                 filtro.CodigoLoja,
-                filtro.CodigoVenda,
+                CodigoVenda = codigoVenda,
                 NotaFiscal = notaFiscal,
                 Obs = obs,
                 Offset = offset,
@@ -165,6 +171,37 @@ namespace SantaLolla.Api.Repositories
             var vendas = (
                 await resultado.ReadAsync<VendaResponse>()
             ).ToList();
+
+            var jsonOptions =
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+            foreach (var venda in vendas)
+            {
+                if (string.IsNullOrWhiteSpace(venda.ParcelasJson))
+                {
+                    venda.Parcelas =
+                        new List<VendaParcelaResponse>();
+
+                    continue;
+                }
+
+                try
+                {
+                    venda.Parcelas =
+                        JsonSerializer.Deserialize<List<VendaParcelaResponse>>(
+                            venda.ParcelasJson,
+                            jsonOptions
+                        ) ?? new List<VendaParcelaResponse>();
+                }
+                catch (JsonException)
+                {
+                    venda.Parcelas =
+                        new List<VendaParcelaResponse>();
+                }
+            }
 
             return PagedResponse<VendaResponse>.Create(
                 vendas,

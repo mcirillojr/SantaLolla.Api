@@ -90,12 +90,12 @@ namespace SantaLolla.Api.Models.ClientesVarejo
         /// Quantidade de registros retornados por página.
         /// </summary>
         /// <remarks>
-        /// Padrão: 500 registros.
+        /// Padrão: 50 registros.
         /// Máximo: 5000 registros por página.
         /// Limite reduzido para evitar timeouts em buscas muito grandes.
         /// </remarks>
-        /// <example>500</example>
+        /// <example>50</example>
         [JsonPropertyName("tamanhoPagina")]
-        public int TamanhoPagina { get; set; } = 500;
+        public int TamanhoPagina { get; set; } = 50;
     }
 }

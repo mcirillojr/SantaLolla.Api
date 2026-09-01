@@ -48,115 +48,152 @@ namespace SantaLolla.Api.Repositories
             const string sql = @"
                 SELECT
                     COUNT(1)
-                FROM dbo.SETA_CLIENTES_VAREJO
-                WHERE ATIVO = 1
+                FROM dbo.SETA_CLIENTES_VAREJO C WITH (NOLOCK)
+                WHERE C.ATIVO = 1
                   AND (
                         @Rede IS NULL
-                        OR REDE = @Rede
+                        OR C.REDE = @Rede
                       )
                   AND (
                         @CodigoCliente IS NULL
-                        OR CODIGO_CLIENTE = @CodigoCliente
+                        OR C.CODIGO_CLIENTE = @CodigoCliente
                       )
                   AND (
                         @Nome IS NULL
-                        OR NOME LIKE @Nome
+                        OR C.NOME LIKE @Nome
                       )
                   AND (
                         @CpfCnpj IS NULL
-                        OR CPFCNPJ LIKE @CpfCnpj
+                        OR C.CPFCNPJ LIKE @CpfCnpj
                       )
                   AND (
                         @AtualizadoInicio IS NULL
-                        OR ATUALIZADO >= @AtualizadoInicio
+                        OR C.ATUALIZADO >= @AtualizadoInicio
                       )
                   AND (
                         @AtualizadoFim IS NULL
-                        OR ATUALIZADO <= @AtualizadoFim
+                        OR C.ATUALIZADO <= @AtualizadoFim
                       );
 
                 SELECT
-                    REDE AS Rede,
-                    CODIGO_CLIENTE AS CodigoCliente,
-                    NOME AS Nome,
-                    APELIDO AS Apelido,
-                    PESSOA AS Pessoa,
+                    C.REDE AS Rede,
+                    C.CODIGO_CLIENTE AS CodigoCliente,
 
-                    CPFCNPJ AS CpfCnpj,
-                    RGIE AS RgIe,
-                    DOCAUXILIAR AS DocAuxiliar,
+                    ULTIMA_LOJA.MARCA AS Marca,
 
-                    EMAIL AS Email,
-                    TELEFONE1 AS Telefone1,
-                    TELEFONE2 AS Telefone2,
-                    TELEFONE3 AS Telefone3,
-                    TELEFONE4 AS Telefone4,
+                    C.NOME AS Nome,
+                    C.APELIDO AS Apelido,
+                    C.PESSOA AS Pessoa,
 
-                    CEP AS Cep,
-                    ENDERECO AS Endereco,
-                    BAIRRO AS Bairro,
-                    CIDADE AS Cidade,
-                    UF AS Uf,
-                    COMPLEMENTO AS Complemento,
-                    ENDERECO_COMPLETO AS EnderecoCompleto,
+                    C.CPFCNPJ AS CpfCnpj,
+                    C.RGIE AS RgIe,
+                    C.DOCAUXILIAR AS DocAuxiliar,
 
-                    NATURALIDADE AS Naturalidade,
-                    ORIGEM AS Origem,
-                    ESTADOCIVIL AS EstadoCivil,
-                    SEXO AS Sexo,
-                    NASCIMENTO AS Nascimento,
-                    ANIVERSARIO AS Aniversario,
+                    C.EMAIL AS Email,
+                    C.TELEFONE1 AS Telefone1,
+                    C.TELEFONE2 AS Telefone2,
+                    C.TELEFONE3 AS Telefone3,
+                    C.TELEFONE4 AS Telefone4,
 
-                    STATUS AS Status,
-                    GRUPO AS Grupo,
-                    ATIVIDADE AS Atividade,
-                    DESCRICAO_ATIVIDADE AS DescricaoAtividade,
+                    C.CEP AS Cep,
+                    C.ENDERECO AS Endereco,
+                    C.BAIRRO AS Bairro,
+                    C.CIDADE AS Cidade,
+                    C.UF AS Uf,
+                    C.COMPLEMENTO AS Complemento,
+                    C.ENDERECO_COMPLETO AS EnderecoCompleto,
 
-                    RESPONSAVEL AS Responsavel,
-                    NOME_RESPONSAVEL AS NomeResponsavel,
+                    C.NATURALIDADE AS Naturalidade,
+                    C.ORIGEM AS Origem,
+                    C.ESTADOCIVIL AS EstadoCivil,
+                    C.SEXO AS Sexo,
+                    C.NASCIMENTO AS Nascimento,
+                    C.ANIVERSARIO AS Aniversario,
 
-                    EMPRESA AS Empresa,
-                    CLIENTE AS Cliente,
-                    FORNECEDOR AS Fornecedor,
-                    FUNCIONARIO AS Funcionario,
-                    TRANSPORTADORA AS Transportadora,
-                    CONVENIADO AS Conveniado,
+                    C.STATUS AS Status,
+                    C.GRUPO AS Grupo,
+                    C.ATIVIDADE AS Atividade,
+                    C.DESCRICAO_ATIVIDADE AS DescricaoAtividade,
 
-                    CREDITO AS Credito,
-                    BLOQUEIA AS Bloqueia,
-                    CADASTRO AS Cadastro,
-                    ATUALIZADO AS Atualizado,
+                    C.RESPONSAVEL AS Responsavel,
+                    C.NOME_RESPONSAVEL AS NomeResponsavel,
 
-                    OBS AS Obs
-                FROM dbo.SETA_CLIENTES_VAREJO (NO LOCK)
-                WHERE ATIVO = 1
+                    C.EMPRESA AS Empresa,
+                    C.CLIENTE AS Cliente,
+                    C.FORNECEDOR AS Fornecedor,
+                    C.FUNCIONARIO AS Funcionario,
+                    C.TRANSPORTADORA AS Transportadora,
+                    C.CONVENIADO AS Conveniado,
+
+                    C.CREDITO AS Credito,
+                    C.BLOQUEIA AS Bloqueia,
+
+                    C.CADASTRO AS Cadastro,
+                    C.ATUALIZADO AS Atualizado,
+
+                    ULTIMA_VENDA.DATA_VENDA AS DataUltimaCompra,
+
+                    C.OBS AS Obs
+
+                FROM dbo.SETA_CLIENTES_VAREJO C WITH (NOLOCK)
+
+                OUTER APPLY
+                (
+                    SELECT TOP 1
+                        V.DATA_VENDA,
+                        V.CODIGO_EMPRESA
+                    FROM dbo.SETA_VENDAS_DETALHE V WITH (NOLOCK)
+                    WHERE V.REDE = C.REDE
+                      AND V.CODCLIENTE = C.CODIGO_CLIENTE
+                    ORDER BY
+                        V.DATA_VENDA DESC,
+                        V.LASTUPDATE_ORIGEM DESC,
+                        V.ID_VENDA_DETALHE DESC
+                ) ULTIMA_VENDA
+
+                OUTER APPLY
+                (
+                    SELECT TOP 1
+                        L.MARCA
+                    FROM dbo.SETA_LOJAS L WITH (NOLOCK)
+                    WHERE L.REDE = C.REDE
+                      AND L.CODIGO_EMPRESA =
+                          ULTIMA_VENDA.CODIGO_EMPRESA
+                      AND L.ATIVO = 1
+                    ORDER BY
+                        L.ID_LOJA DESC
+                ) ULTIMA_LOJA
+
+                WHERE C.ATIVO = 1
                   AND (
                         @Rede IS NULL
-                        OR REDE = @Rede
+                        OR C.REDE = @Rede
                       )
                   AND (
                         @CodigoCliente IS NULL
-                        OR CODIGO_CLIENTE = @CodigoCliente
+                        OR C.CODIGO_CLIENTE = @CodigoCliente
                       )
                   AND (
                         @Nome IS NULL
-                        OR NOME LIKE @Nome
+                        OR C.NOME LIKE @Nome
                       )
-                  AND (
-                        @CpfCnpj IS NULL
-                        OR CPFCNPJ LIKE @CpfCnpj
-                      )
+                AND (
+                      @CpfCnpj IS NULL
+                      OR C.CPFCNPJ = @CpfCnpj
+                    )
                   AND (
                         @AtualizadoInicio IS NULL
-                        OR ATUALIZADO >= @AtualizadoInicio
+                        OR C.ATUALIZADO >= @AtualizadoInicio
                       )
                   AND (
                         @AtualizadoFim IS NULL
-                        OR ATUALIZADO <= @AtualizadoFim
+                        OR C.ATUALIZADO <= @AtualizadoFim
                       )
+
                 ORDER BY
-                    REDE,
-                    CODIGO_CLIENTE
+                    C.REDE,
+                    C.CODIGO_CLIENTE
+
                 OFFSET @Offset ROWS
                 FETCH NEXT @TamanhoPagina ROWS ONLY;
             ";
@@ -170,7 +207,7 @@ namespace SantaLolla.Api.Repositories
                     NormalizarTexto(filtro.CodigoCliente),
 
                 Nome = nome,
-                CpfCnpj = cpfCnpj,
+                CpfCnpj = NormalizarTexto(filtro.CpfCnpj),
 
                 filtro.AtualizadoInicio,
                 filtro.AtualizadoFim,
