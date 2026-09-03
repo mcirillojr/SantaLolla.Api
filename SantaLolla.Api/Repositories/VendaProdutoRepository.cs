@@ -49,6 +49,9 @@ namespace SantaLolla.Api.Repositories
                 PrepararFiltroLike(filtro.Referencia);
 
             const string sql = @"
+                ------------------------------------------------------------
+                -- TOTAL DE VENDAS
+                ------------------------------------------------------------
                 SELECT
                     COUNT(1)
                 FROM
@@ -56,7 +59,7 @@ namespace SantaLolla.Api.Repositories
                     SELECT
                         REDE,
                         CODIGO_VENDA
-                    FROM dbo.SETA_VENDAS_PRODUTOS (NOLOCK)
+                    FROM dbo.SETA_VENDAS_PRODUTOS WITH (NOLOCK)
                     WHERE 1 = 1
                       AND (
                             @Rede IS NULL
@@ -103,6 +106,9 @@ namespace SantaLolla.Api.Repositories
                         CODIGO_VENDA
                 ) AS TOTAL_VENDAS;
 
+                ------------------------------------------------------------
+                -- VENDAS PAGINADAS
+                ------------------------------------------------------------
                 ;WITH VendasFiltradas AS
                 (
                     SELECT
@@ -110,7 +116,7 @@ namespace SantaLolla.Api.Repositories
                         CODIGO_VENDA,
                         MAX(DATA_VENDA) AS DATA_VENDA,
                         MAX(LASTUPDATE_ORIGEM) AS LASTUPDATE_ORIGEM
-                    FROM dbo.SETA_VENDAS_PRODUTOS (NOLOCK)
+                    FROM dbo.SETA_VENDAS_PRODUTOS WITH (NOLOCK)
                     WHERE 1 = 1
                       AND (
                             @Rede IS NULL
@@ -163,13 +169,23 @@ namespace SantaLolla.Api.Repositories
                     OFFSET @Offset ROWS
                     FETCH NEXT @TamanhoPagina ROWS ONLY
                 )
+
+                ------------------------------------------------------------
+                -- DADOS DA VENDA + PRODUTOS
+                ------------------------------------------------------------
                 SELECT
                     P.REDE AS Rede,
                     P.CODIGO_VENDA AS CodigoVenda,
+
+                    VENDA.VENDA_VINCULADA AS VendaVinculada,
+                    VENDA.TIPO_OPERACAO AS TipoOperacao,
+
                     P.CODCLIENTE AS CodCliente,
                     P.CODVENDEDOR AS CodVendedor,
 
                     P.CODIGO_EMPRESA AS CodigoEmpresa,
+                    LOJA.MARCA AS Marca,
+
                     P.CNPJ AS Cnpj,
                     P.APELIDO AS Apelido,
                     P.NOME AS Nome,
@@ -197,11 +213,44 @@ namespace SantaLolla.Api.Repositories
                     P.CUSTO AS Custo,
                     P.COLECAO AS Colecao,
                     P.FORNECEDOR AS Fornecedor
-                FROM dbo.SETA_VENDAS_PRODUTOS P (NOLOCK)
 
-                INNER JOIN VendasFiltradas VF (NOLOCK)
+                FROM dbo.SETA_VENDAS_PRODUTOS P WITH (NOLOCK)
+
+                INNER JOIN VendasFiltradas VF
                     ON VF.REDE = P.REDE
                    AND VF.CODIGO_VENDA = P.CODIGO_VENDA
+
+                ------------------------------------------------------------
+                -- MARCA DA LOJA
+                ------------------------------------------------------------
+                OUTER APPLY
+                (
+                    SELECT TOP 1
+                        L.MARCA
+                    FROM dbo.SETA_LOJAS L WITH (NOLOCK)
+                    WHERE L.REDE = P.REDE
+                      AND L.CODIGO_EMPRESA = P.CODIGO_EMPRESA
+                      AND L.ATIVO = 1
+                    ORDER BY
+                        L.ID_LOJA DESC
+                ) LOJA
+
+                ------------------------------------------------------------
+                -- DADOS COMPLEMENTARES DA VENDA
+                ------------------------------------------------------------
+                OUTER APPLY
+                (
+                    SELECT TOP 1
+                        V.VENDA_VINCULADA,
+                        V.TIPO_OPERACAO
+                    FROM dbo.SETA_VENDAS_DETALHE V WITH (NOLOCK)
+                    WHERE V.REDE = P.REDE
+                      AND V.CODIGO_EMPRESA = P.CODIGO_EMPRESA
+                      AND V.CODIGO_VENDA = P.CODIGO_VENDA
+                    ORDER BY
+                        V.LASTUPDATE_ORIGEM DESC,
+                        V.ID_VENDA_DETALHE DESC
+                ) VENDA
 
                 ORDER BY
                     VF.DATA_VENDA DESC,
@@ -267,10 +316,16 @@ namespace SantaLolla.Api.Repositories
                     {
                         Rede = venda.Rede,
                         CodigoVenda = venda.CodigoVenda,
+
+                        VendaVinculada = venda.VendaVinculada,
+                        TipoOperacao = venda.TipoOperacao,
+
                         CodCliente = venda.CodCliente,
                         CodVendedor = venda.CodVendedor,
 
                         CodigoEmpresa = venda.CodigoEmpresa,
+                        Marca = venda.Marca,
+
                         Cnpj = venda.Cnpj,
                         Apelido = venda.Apelido,
                         Nome = venda.Nome,
@@ -350,39 +405,65 @@ namespace SantaLolla.Api.Repositories
         private class VendaProdutoLinha
         {
             public string? Rede { get; set; }
+
             public string? CodigoVenda { get; set; }
+
+            public string? VendaVinculada { get; set; }
+
+            public string? TipoOperacao { get; set; }
+
             public string? CodCliente { get; set; }
+
             public string? CodVendedor { get; set; }
 
             public string? CodigoEmpresa { get; set; }
+
+            public string? Marca { get; set; }
+
             public string? Cnpj { get; set; }
+
             public string? Apelido { get; set; }
+
             public string? Nome { get; set; }
 
             public DateTime? DataVenda { get; set; }
+
             public DateTime? LastUpdateOrigem { get; set; }
 
             public string? Cliente { get; set; }
+
             public string? Vendedor { get; set; }
+
             public string? Condicoes { get; set; }
 
             public string? VendaImportada { get; set; }
+
             public string? Status { get; set; }
 
             public string? Referencia { get; set; }
+
             public string? Barras { get; set; }
+
             public string? CodigoProduto { get; set; }
+
             public string? Tamanho { get; set; }
 
             public decimal? Quantidade { get; set; }
+
             public decimal? Unitario { get; set; }
+
             public decimal? Desconto { get; set; }
+
             public decimal? Total { get; set; }
+
             public decimal? Frete { get; set; }
+
             public decimal? TotalFrete { get; set; }
+
             public decimal? Custo { get; set; }
 
             public string? Colecao { get; set; }
+
             public string? Fornecedor { get; set; }
         }
     }

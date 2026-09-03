@@ -23,6 +23,13 @@ namespace SantaLolla.Api.Models.Vendas
         public string CodigoLoja { get; set; } = string.Empty;
 
         /// <summary>
+        /// Marca relacionada à loja da venda.
+        /// </summary>
+        /// <remarks>Exemplo: SANTA LOLLA</remarks>
+        [JsonPropertyName("marca")]
+        public string? Marca { get; set; }
+
+        /// <summary>
         /// CNPJ da loja da venda.
         /// </summary>
         /// <remarks>Exemplo: 28.803.454/0001-10</remarks>
@@ -56,6 +63,23 @@ namespace SantaLolla.Api.Models.Vendas
         [Required]
         [JsonPropertyName("codigoVenda")]
         public string CodigoVenda { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Código da venda original vinculada à operação.
+        /// </summary>
+        /// <remarks>
+        /// Preenchido principalmente em devoluções/trocas.
+        /// Exemplo: 01162820
+        /// </remarks>
+        [JsonPropertyName("vendaVinculada")]
+        public string? VendaVinculada { get; set; }
+
+        /// <summary>
+        /// Tipo da operação.
+        /// </summary>
+        /// <remarks>Exemplo: VENDA ou DEVOLUCAO</remarks>
+        [JsonPropertyName("tipoOperacao")]
+        public string? TipoOperacao { get; set; }
 
         /// <summary>
         /// Data da venda.
@@ -106,6 +130,13 @@ namespace SantaLolla.Api.Models.Vendas
         public string? CodigoCliente { get; set; }
 
         /// <summary>
+        /// CPF ou CNPJ do cliente da venda.
+        /// </summary>
+        /// <remarks>Exemplo: 030.508.974-90</remarks>
+        [JsonPropertyName("cpfCnpjCliente")]
+        public string? CpfCnpjCliente { get; set; }
+
+        /// <summary>
         /// Nome do cliente da venda.
         /// </summary>
         [JsonPropertyName("cliente")]
@@ -142,6 +173,12 @@ namespace SantaLolla.Api.Models.Vendas
         /// </summary>
         [JsonPropertyName("parcelas")]
         public List<VendaParcelaResponse> Parcelas { get; set; } = new();
+
+          /// <summary>
+        /// Pagamentos vinculados à venda.
+        /// </summary>
+        [JsonPropertyName("pagamentos")]
+        public List<VendaPagamentoResponse> Pagamentos { get; set; } = new();
 
         /// <summary>
         /// Valor total dos títulos financeiros da venda.

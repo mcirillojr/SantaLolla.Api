@@ -19,6 +19,23 @@ namespace SantaLolla.Api.Models.VendasProdutos
         public string? CodigoVenda { get; set; }
 
         /// <summary>
+        /// Código da venda original vinculada à operação.
+        /// </summary>
+        /// <remarks>
+        /// Preenchido principalmente em devoluções/trocas.
+        /// Exemplo: 01162820
+        /// </remarks>
+        [JsonPropertyName("vendaVinculada")]
+        public string? VendaVinculada { get; set; }
+
+        /// <summary>
+        /// Tipo da operação.
+        /// </summary>
+        /// <remarks>Exemplo: VENDA ou DEVOLUCAO</remarks>
+        [JsonPropertyName("tipoOperacao")]
+        public string? TipoOperacao { get; set; }
+
+        /// <summary>
         /// Código do cliente.
         /// </summary>
         /// <remarks>Exemplo: 00012345</remarks>
@@ -38,6 +55,13 @@ namespace SantaLolla.Api.Models.VendasProdutos
         /// <remarks>Exemplo: 00000001</remarks>
         [JsonPropertyName("codigoEmpresa")]
         public string? CodigoEmpresa { get; set; }
+
+        /// <summary>
+        /// Marca relacionada à loja da venda.
+        /// </summary>
+        /// <remarks>Exemplo: SANTA LOLLA</remarks>
+        [JsonPropertyName("marca")]
+        public string? Marca { get; set; }
 
         /// <summary>
         /// CNPJ da empresa/loja.
