@@ -41,6 +41,12 @@ namespace SantaLolla.Api.Models.Estoques
         public string? CodigoProduto { get; set; }
 
         /// <summary>
+        /// Código Linx do produto.
+        /// </summary>
+        [JsonPropertyName("codigoLinx")]
+        public string? CodigoLinx { get; set; }
+
+        /// <summary>
         /// Descrição do produto.
         /// </summary>
         [JsonPropertyName("descricaoProduto")]

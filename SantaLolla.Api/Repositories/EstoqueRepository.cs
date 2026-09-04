@@ -45,137 +45,185 @@ namespace SantaLolla.Api.Repositories
                 PrepararFiltroLike(filtro.DescricaoLinha);
 
             const string sql = @"
+                ------------------------------------------------------------
+                -- TOTAL DE REGISTROS
+                ------------------------------------------------------------
                 SELECT
                     COUNT(1)
-                FROM dbo.SETA_ESTOQUE_ATUAL (NOLOCK)
+                FROM dbo.SETA_ESTOQUE_ATUAL E WITH (NOLOCK)
                 WHERE
-                    (@Rede IS NULL OR REDE = @Rede)
+                    (
+                        @Rede IS NULL
+                        OR E.REDE = @Rede
+                    )
                     AND (
                         @CodigoLoja IS NULL
-                        OR CODIGO_EMPRESA = @CodigoLoja
+                        OR E.CODIGO_EMPRESA = @CodigoLoja
                     )
                     AND (
                         @CodigoProduto IS NULL
-                        OR CODIGO_PRODUTO = @CodigoProduto
+                        OR E.CODIGO_PRODUTO = @CodigoProduto
                     )
                     AND (
                         @Referencia IS NULL
-                        OR REFERENCIA = @Referencia
+                        OR E.REFERENCIA = @Referencia
                     )
                     AND (
                         @Tamanho IS NULL
-                        OR TAMANHO = @Tamanho
+                        OR E.TAMANHO = @Tamanho
                     )
                     AND (
                         @Cor IS NULL
-                        OR COR = @Cor
+                        OR E.COR = @Cor
                     )
                     AND (
                         @DescricaoColecao IS NULL
-                        OR DESCRICAO_COLECAO LIKE @DescricaoColecao
+                        OR E.DESCRICAO_COLECAO LIKE @DescricaoColecao
                     )
                     AND (
                         @DescricaoLinha IS NULL
-                        OR DESCRICAO_LINHA LIKE @DescricaoLinha
+                        OR E.DESCRICAO_LINHA LIKE @DescricaoLinha
                     )
                     AND (
                         @DataAtualizacaoInicio IS NULL
-                        OR DATA_ATUALIZACAO >= @DataAtualizacaoInicio
+                        OR E.DATA_ATUALIZACAO >= @DataAtualizacaoInicio
                     )
                     AND (
                         @DataAtualizacaoFim IS NULL
-                        OR DATA_ATUALIZACAO <= @DataAtualizacaoFim
+                        OR E.DATA_ATUALIZACAO <= @DataAtualizacaoFim
                     );
 
+                ------------------------------------------------------------
+                -- DADOS DO ESTOQUE
+                ------------------------------------------------------------
                 SELECT
-                    REDE AS Rede,
-                    CODIGO_EMPRESA AS CodigoEmpresa,
-                    CNPJ AS Cnpj,
-                    APELIDO_EMPRESA AS ApelidoEmpresa,
-                    NOME_EMPRESA AS NomeEmpresa,
-                    CODIGO_PRODUTO AS CodigoProduto,
-                    DESCRICAO_PRODUTO AS DescricaoProduto,
-                    TAMANHO AS Tamanho,
-                    COR AS Cor,
-                    GRADE AS Grade,
-                    REFERENCIA AS Referencia,
-                    MARCA AS Marca,
-                    GRUPO AS Grupo,
-                    DESCRICAO_COLECAO AS DescricaoColecao,
-                    DESCRICAO_LINHA AS DescricaoLinha,
-                    QUANTIDADE AS Quantidade,
-                    CUSTO AS Custo,
-                    PRECO AS Preco,
-                    PRECO1 AS Preco1,
-                    PRECO2 AS Preco2,
-                    DATA_ESTOQUE AS DataEstoque,
-                    DATA_CRIACAO AS DataCriacao,
-                    DATA_ATUALIZACAO AS DataAtualizacao
-                FROM dbo.SETA_ESTOQUE_ATUAL
+                    E.REDE AS Rede,
+                    E.CODIGO_EMPRESA AS CodigoEmpresa,
+                    E.CNPJ AS Cnpj,
+                    E.APELIDO_EMPRESA AS ApelidoEmpresa,
+                    E.NOME_EMPRESA AS NomeEmpresa,
+
+                    E.CODIGO_PRODUTO AS CodigoProduto,
+                    PRODUTO.CODIGO_LINX AS CodigoLinx,
+
+                    E.DESCRICAO_PRODUTO AS DescricaoProduto,
+                    E.TAMANHO AS Tamanho,
+                    E.COR AS Cor,
+                    E.GRADE AS Grade,
+                    E.REFERENCIA AS Referencia,
+                    E.MARCA AS Marca,
+                    E.GRUPO AS Grupo,
+                    E.DESCRICAO_COLECAO AS DescricaoColecao,
+                    E.DESCRICAO_LINHA AS DescricaoLinha,
+
+                    E.QUANTIDADE AS Quantidade,
+
+                    E.CUSTO AS Custo,
+                    E.PRECO AS Preco,
+                    E.PRECO1 AS Preco1,
+                    E.PRECO2 AS Preco2,
+
+                    E.DATA_ESTOQUE AS DataEstoque,
+                    E.DATA_CRIACAO AS DataCriacao,
+                    E.DATA_ATUALIZACAO AS DataAtualizacao
+
+                FROM dbo.SETA_ESTOQUE_ATUAL E WITH (NOLOCK)
+
+                ------------------------------------------------------------
+                -- CÓDIGO LINX DO PRODUTO
+                ------------------------------------------------------------
+                OUTER APPLY
+                (
+                    SELECT TOP 1
+                        P.CODIGO_LINX
+                    FROM dbo.SETA_PRODUTOS P WITH (NOLOCK)
+                    WHERE P.REDE = 'public'
+                      AND P.CODIGO_PRODUTO = E.CODIGO_PRODUTO
+                    ORDER BY
+                        P.ID_PRODUTO DESC
+                ) PRODUTO
+
                 WHERE
-                    (@Rede IS NULL OR REDE = @Rede)
+                    (
+                        @Rede IS NULL
+                        OR E.REDE = @Rede
+                    )
                     AND (
                         @CodigoLoja IS NULL
-                        OR CODIGO_EMPRESA = @CodigoLoja
+                        OR E.CODIGO_EMPRESA = @CodigoLoja
                     )
                     AND (
                         @CodigoProduto IS NULL
-                        OR CODIGO_PRODUTO = @CodigoProduto
+                        OR E.CODIGO_PRODUTO = @CodigoProduto
                     )
                     AND (
                         @Referencia IS NULL
-                        OR REFERENCIA = @Referencia
+                        OR E.REFERENCIA = @Referencia
                     )
                     AND (
                         @Tamanho IS NULL
-                        OR TAMANHO = @Tamanho
+                        OR E.TAMANHO = @Tamanho
                     )
                     AND (
                         @Cor IS NULL
-                        OR COR = @Cor
+                        OR E.COR = @Cor
                     )
                     AND (
                         @DescricaoColecao IS NULL
-                        OR DESCRICAO_COLECAO LIKE @DescricaoColecao
+                        OR E.DESCRICAO_COLECAO LIKE @DescricaoColecao
                     )
                     AND (
                         @DescricaoLinha IS NULL
-                        OR DESCRICAO_LINHA LIKE @DescricaoLinha
+                        OR E.DESCRICAO_LINHA LIKE @DescricaoLinha
                     )
                     AND (
                         @DataAtualizacaoInicio IS NULL
-                        OR DATA_ATUALIZACAO >= @DataAtualizacaoInicio
+                        OR E.DATA_ATUALIZACAO >= @DataAtualizacaoInicio
                     )
                     AND (
                         @DataAtualizacaoFim IS NULL
-                        OR DATA_ATUALIZACAO <= @DataAtualizacaoFim
+                        OR E.DATA_ATUALIZACAO <= @DataAtualizacaoFim
                     )
+
                 ORDER BY
-                    REDE,
-                    CODIGO_EMPRESA,
-                    CODIGO_PRODUTO,
-                    TAMANHO
+                    E.REDE,
+                    E.CODIGO_EMPRESA,
+                    E.CODIGO_PRODUTO,
+                    E.TAMANHO
+
                 OFFSET @Offset ROWS
                 FETCH NEXT @TamanhoPagina ROWS ONLY;
             ";
 
             var parametros = new
             {
-                Rede = NormalizarTexto(filtro.Rede),
+                Rede =
+                    NormalizarTexto(filtro.Rede),
+
                 CodigoLoja =
                     NormalizarTexto(filtro.CodigoLoja),
+
                 CodigoProduto =
                     NormalizarTexto(filtro.CodigoProduto),
+
                 Referencia =
                     NormalizarTexto(filtro.Referencia),
+
                 Tamanho =
                     NormalizarTexto(filtro.Tamanho),
+
                 Cor =
                     NormalizarTexto(filtro.Cor),
-                DescricaoColecao = descricaoColecao,
-                DescricaoLinha = descricaoLinha,
+
+                DescricaoColecao =
+                    descricaoColecao,
+
+                DescricaoLinha =
+                    descricaoLinha,
+
                 filtro.DataAtualizacaoInicio,
                 filtro.DataAtualizacaoFim,
+
                 Offset = offset,
                 filtro.TamanhoPagina
             };
@@ -241,6 +289,9 @@ namespace SantaLolla.Api.Repositories
                 PrepararFiltroLike(filtro.DescricaoLinha);
 
             const string sql = @"
+                ------------------------------------------------------------
+                -- TOTAL AGRUPADO
+                ------------------------------------------------------------
                 SELECT
                     COUNT(1)
                 FROM
@@ -254,7 +305,7 @@ namespace SantaLolla.Api.Repositories
                         GRUPO,
                         DESCRICAO_COLECAO,
                         DESCRICAO_LINHA
-                    FROM dbo.SETA_ESTOQUE_ATUAL
+                    FROM dbo.SETA_ESTOQUE_ATUAL WITH (NOLOCK)
                     WHERE
                         (
                             @NomeLoja IS NULL
@@ -281,9 +332,13 @@ namespace SantaLolla.Api.Repositories
                         GRUPO,
                         DESCRICAO_COLECAO,
                         DESCRICAO_LINHA
-                    HAVING SUM(QUANTIDADE) <> 0
+                    HAVING
+                        SUM(QUANTIDADE) <> 0
                 ) AS TOTAL_AGRUPADO;
 
+                ------------------------------------------------------------
+                -- DADOS AGRUPADOS
+                ------------------------------------------------------------
                 SELECT
                     REDE AS Rede,
                     CODIGO_PRODUTO AS CodigoProduto,
@@ -293,12 +348,16 @@ namespace SantaLolla.Api.Repositories
                     GRUPO AS Grupo,
                     DESCRICAO_COLECAO AS DescricaoColecao,
                     DESCRICAO_LINHA AS DescricaoLinha,
+
                     SUM(QUANTIDADE) AS QuantidadeTotal,
+
                     AVG(CUSTO) AS Custo,
                     AVG(PRECO) AS Preco,
                     AVG(PRECO1) AS Preco1,
                     AVG(PRECO2) AS Preco2
-                FROM dbo.SETA_ESTOQUE_ATUAL
+
+                FROM dbo.SETA_ESTOQUE_ATUAL WITH (NOLOCK)
+
                 WHERE
                     (
                         @NomeLoja IS NULL
@@ -316,6 +375,7 @@ namespace SantaLolla.Api.Repositories
                         @DescricaoLinha IS NULL
                         OR DESCRICAO_LINHA LIKE @DescricaoLinha
                     )
+
                 GROUP BY
                     REDE,
                     CODIGO_PRODUTO,
@@ -325,21 +385,33 @@ namespace SantaLolla.Api.Repositories
                     GRUPO,
                     DESCRICAO_COLECAO,
                     DESCRICAO_LINHA
-                HAVING SUM(QUANTIDADE) <> 0
+
+                HAVING
+                    SUM(QUANTIDADE) <> 0
+
                 ORDER BY
                     REDE,
                     REFERENCIA,
                     CODIGO_PRODUTO
+
                 OFFSET @Offset ROWS
                 FETCH NEXT @TamanhoPagina ROWS ONLY;
             ";
 
             var parametros = new
             {
-                NomeLoja = nomeLoja,
-                Referencia = referencia,
-                DescricaoColecao = descricaoColecao,
-                DescricaoLinha = descricaoLinha,
+                NomeLoja =
+                    nomeLoja,
+
+                Referencia =
+                    referencia,
+
+                DescricaoColecao =
+                    descricaoColecao,
+
+                DescricaoLinha =
+                    descricaoLinha,
+
                 Offset = offset,
                 filtro.TamanhoPagina
             };

@@ -82,6 +82,7 @@ builder.Services.AddScoped<IEstoqueRepository, EstoqueRepository>();
 builder.Services.AddScoped<IClienteVarejoRepository, ClienteVarejoRepository>();
 builder.Services.AddScoped<IVendaProdutoRepository, VendaProdutoRepository>();
 builder.Services.AddScoped<IApiLogRepository, ApiLogRepository>();
+builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
 
 // Services
 builder.Services.AddScoped<ITokenService, TokenService>();
