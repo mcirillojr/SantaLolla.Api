@@ -24,15 +24,15 @@
 SantaLolla.Api/
 │
 ├── Controllers/                    # Camada de Apresentação
-│   ├── AuthController.cs          # Gerenciamento de autenticação
-│   ├── VendasController.cs        # Operações de vendas
-│   ├── VendasProdutosController.cs    # Operações de produtos de vendas (NOVO)
-│   ├── EstoquesController.cs      # Operações de estoques
-│   ├── ClientesVarejoController.cs    # Operações de clientes de varejo (NOVO)
-│   ├── LojasController.cs         # Operações de lojas
-│   ├── VendedoresController.cs    # Operações de vendedores
-│   ├── HealthController.cs        # Health check
-│   └── DevController.cs           # Endpoints de desenvolvimento
+│   ├── AuthController.cs           # Gerenciamento de autenticação (token JWT)
+│   ├── VendasController.cs         # Operações de vendas
+│   ├── VendasProdutosController.cs # Operações de produtos/itens das vendas
+│   ├── ClientesVarejoController.cs # Operações de clientes de varejo
+│   ├── EstoquesController.cs       # Operações de estoques
+│   ├── LojasController.cs          # Operações de lojas
+│   ├── VendedoresController.cs     # Operações de vendedores
+│   ├── HealthController.cs         # Health check
+│   └── DevController.cs            # Endpoints de desenvolvimento
 │
 ├── Models/                         # Modelos de Dados (DTOs)
 │   ├── Auth/
@@ -42,10 +42,25 @@ SantaLolla.Api/
 │   │   └── TerceiroApi.cs
 │   ├── Vendas/
 │   │   ├── VendaFiltroRequest.cs
-│   │   └── VendaResponse.cs
+│   │   ├── VendaResponse.cs
+│   │   ├── VendaParcelaResponse.cs
+│   │   └── VendaPagamentoResponse.cs
+│   ├── VendasProdutos/
+│   │   ├── VendaProdutoFiltroRequest.cs
+│   │   ├── VendaProdutoResponse.cs
+│   │   └── VendaProdutoItemResponse.cs
+│   ├── ClientesVarejo/
+│   │   ├── ClienteVarejoFiltroRequest.cs
+│   │   └── ClienteVarejoResponse.cs
 │   ├── Estoques/
+│   │   ├── EstoqueFiltroRequest.cs
+│   │   ├── EstoqueResponse.cs
+│   │   ├── EstoqueTotalAgrupadoFiltroRequest.cs
+│   │   └── EstoqueTotalAgrupadoResponse.cs
 │   ├── Lojas/
-│   └── Vendedores/
+│   ├── Vendedores/
+│   └── PagedResponse/
+│       └── PagedResponse.cs
 │
 ├── Services/                       # Lógica de Negócio
 │   ├── Interfaces/
@@ -56,11 +71,15 @@ SantaLolla.Api/
 ├── Repositories/                   # Camada de Acesso a Dados
 │   ├── Interfaces/
 │   │   ├── IVendaRepository.cs
+│   │   ├── IVendaProdutoRepository.cs
+│   │   ├── IClienteVarejoRepository.cs
 │   │   ├── IEstoqueRepository.cs
 │   │   ├── ILojaRepository.cs
 │   │   ├── IVendedorRepository.cs
 │   │   └── ITerceiroRepository.cs
 │   ├── VendaRepository.cs
+│   ├── VendaProdutoRepository.cs
+│   ├── ClienteVarejoRepository.cs
 │   ├── EstoqueRepository.cs
 │   ├── LojaRepository.cs
 │   ├── VendedorRepository.cs
@@ -487,22 +506,25 @@ Response (200 OK):
 ### 3. Vendas (`/api/vendas`)
 
 #### GET `/api/vendas` - Listar Vendas
-Lista vendas filtradas por período, rede, loja e paginação.
+Lista vendas filtradas por período de venda, período de atualização, rede, loja, nota fiscal, observação e paginação.
 
 ```
 Request:
-GET /api/vendas?dataInicio=2024-01-01&dataFim=2024-01-31&pagina=1&itensPorPagina=50 HTTP/1.1
+GET /api/vendas?dataInicio=2024-01-01&dataFim=2024-01-31&pagina=1&tamanhoPagina=50 HTTP/1.1
 Authorization: Bearer {JWT_TOKEN}
 
 Query Parameters:
 - dataInicio (DateTime, opcional): Data inicial da venda
 - dataFim (DateTime, opcional): Data final da venda
-- lastUpdateInicio (DateTime, opcional): Data inicial de atualização
-- lastUpdateFim (DateTime, opcional): Data final de atualização
+- lastUpdateInicio (DateTime, opcional): Data/hora inicial de atualização da venda
+- lastUpdateFim (DateTime, opcional): Data/hora final de atualização da venda
 - rede (string, opcional): Código da rede
-- loja (string, opcional): Código da loja
-- pagina (int): Página desejada
-- itensPorPagina (int): Itens por página
+- codigoLoja (string, opcional): Código da loja/empresa
+- codigoVenda (string, opcional): Código da venda
+- notaFiscal (string, opcional): Número da nota fiscal (suporta LIKE)
+- obs (string, opcional): Observação da venda (suporta LIKE)
+- pagina (int, padrão: 1): Número da página
+- tamanhoPagina (int, padrão: 500): Registros por página (máx: 5000)
 
 Validação: Pelo menos um período deve ser informado:
   - dataInicio/dataFim OU
@@ -512,16 +534,69 @@ Response (200 OK):
 {
   "total": 250,
   "pagina": 1,
-  "itensPorPagina": 50,
-  "vendas": [
+  "tamanhoPagina": 50,
+  "totalPaginas": 5,
+  "dados": [
     {
-      "id": "V123456",
-      "data": "2024-01-15T10:30:00Z",
-      "rede": "RD01",
-      "loja": "L001",
-      "valor": 1500.00,
-      "itens": 5,
-      "lastUpdate": "2024-01-15T10:30:00Z"
+      "rede": "rede000001",
+      "codigoLoja": "00000001",
+      "marca": "SANTA LOLLA",
+      "cnpj": "28.803.454/0001-10",
+      "aliasId": "LOJA001",
+      "apelido": "SL - OSCAR FREIRE",
+      "nome": "SANTA LOLLA FRANQUIAS LTDA",
+      "codigoVenda": "123456",
+      "vendaVinculada": "01162820",
+      "tipoOperacao": "VENDA",
+      "dataVenda": "2026-06-11",
+      "horaVenda": "14:30",
+      "notaFiscal": "00012345",
+      "serie": "1",
+      "emissaoNf": "2026-06-11",
+      "dataAtualizacao": "2026-06-11T09:30:00",
+      "codigoCliente": "00012345",
+      "cpfCnpjCliente": "030.508.974-90",
+      "cliente": "MARIA SILVA",
+      "codigoVendedor": "00084745",
+      "vendedor": "THAIS MARTINS",
+      "condicoes": "CARTAO",
+      "qtdeParcelas": 2,
+      "parcelas": [
+        {
+          "parcela": "01",
+          "vencimento": "2026-08-24",
+          "valor": 119.40
+        }
+      ],
+      "pagamentos": [
+        {
+          "codigoVenda": "123456",
+          "codigoTitulo": "T0001",
+          "status": "PAGO",
+          "lancamento": "2026-06-11",
+          "vencimento": "2026-07-11",
+          "pagamento": "2026-06-11",
+          "valor": 199.90,
+          "valorPago": 199.90,
+          "numeroParcela": "01",
+          "totalParcelas": "02",
+          "posTef": "POS",
+          "forma": "CC",
+          "instituicao": "123",
+          "nomeInstituicao": "BANCO EXEMPLO",
+          "operadora": "OP01",
+          "bandeira": "VISA",
+          "nomeOperadora": "REDE",
+          "autorizacao": "123456",
+          "nsu": "654321"
+        }
+      ],
+      "total": 238.80,
+      "frete": 10.00,
+      "custo": 150.00,
+      "vendaImportada": "Sim",
+      "status": "S",
+      "obs": "VENDA IMPORTADA EM 2026-06-17"
     }
   ]
 }
@@ -539,36 +614,14 @@ Response (401 Unauthorized):
 
 > ⚠️ Requer autenticação JWT (`[Authorize]`)
 
-#### POST `/api/vendas` - Criar Venda
-Cria um novo registro de venda.
+---
 
-```
-Request:
-POST /api/vendas HTTP/1.1
-Content-Type: application/json
-Authorization: Bearer {JWT_TOKEN}
+### 4. Vendas Produtos (`/api/vendasprodutos`)
 
-{
-  "rede": "RD01",
-  "loja": "L001",
-  "data": "2024-01-15T10:30:00Z",
-  "valor": 1500.00,
-  "itens": 5
-}
+#### GET `/api/vendasprodutos` - Consultar Produtos das Vendas
+Retorna os itens/produtos agrupados por venda, com filtros por venda, rede, vendedor, referência, loja, cliente, data da venda e data de atualização.
 
-Response (201 Created):
-{
-  "id": "V123456",
-  "rede": "RD01",
-  "loja": "L001",
-  "data": "2024-01-15T10:30:00Z",
-  "valor": 1500.00,
-  "itens": 5
-}
-```
-
-#### POST `/api/vendas/produtos` - Consultar Produtos de Vendas (NOVO)
-Retorna os produtos/itens agrupados por venda com filtros detalhados.
+A paginação é realizada por venda, e não por item.
 
 ```
 Request:
@@ -576,29 +629,250 @@ GET /api/vendasprodutos?dataVendaInicio=2024-01-01&dataVendaFim=2024-01-31&pagin
 Authorization: Bearer {JWT_TOKEN}
 
 Query Parameters:
+- rede (string, opcional): Código da rede
+- venda (string, opcional): Código da venda
+- codVendedor (string, opcional): Código do vendedor
+- referencia (string, opcional): Referência do produto (suporta LIKE)
+- apelido (string, opcional): Apelido/nome fantasia da loja (suporta LIKE)
+- cliente (string, opcional): Nome do cliente (suporta LIKE)
 - dataVendaInicio (DateTime, opcional): Data inicial da venda
 - dataVendaFim (DateTime, opcional): Data final da venda
-- lastUpdateInicio (DateTime, opcional): Data inicial de atualização
-- lastUpdateFim (DateTime, opcional): Data final de atualização
-- rede (string, opcional): Código da rede
-- vendedor (string, opcional): Código do vendedor
-- referencia (string, opcional): Referência do produto
-- loja (string, opcional): Código da loja
-- cliente (string, opcional): Código do cliente
+- lastUpdateInicio (DateTime, opcional): Data/hora inicial de atualização
+- lastUpdateFim (DateTime, opcional): Data/hora final de atualização
 - pagina (int, padrão: 1): Número da página
-- tamanhoPagina (int, padrão: 500): Registros por página (máx: 5000)
+- tamanhoPagina (int, padrão: 500): Vendas por página (máx: 5000)
 
-Response (200 OK): Resultado paginado com vendas e seus produtos
+Response (200 OK):
+{
+  "total": 120,
+  "pagina": 1,
+  "tamanhoPagina": 50,
+  "totalPaginas": 3,
+  "dados": [
+    {
+      "rede": "rede000001",
+      "codigoVenda": "00247577",
+      "vendaVinculada": "01162820",
+      "tipoOperacao": "VENDA",
+      "codCliente": "00012345",
+      "codVendedor": "00084745",
+      "codigoEmpresa": "00000001",
+      "marca": "SANTA LOLLA",
+      "cnpj": "28.803.454/0001-10",
+      "apelido": "SL - OSCAR FREIRE",
+      "nome": "SANTA LOLLA FRANQUIAS LTDA",
+      "dataVenda": "2026-06-11",
+      "lastUpdateOrigem": "2026-06-11T09:30:00",
+      "cliente": "MARIA SILVA",
+      "vendedor": "THAIS MARTINS",
+      "condicoes": "CARTAO",
+      "vendaImportada": "Sim",
+      "status": "S",
+      "produtos": [
+        {
+          "referencia": "038F.11E4.0048.0157",
+          "barras": "7891234567890",
+          "codigoProduto": "123681",
+          "tamanho": "37",
+          "quantidade": 1,
+          "unitario": 199.90,
+          "desconto": 0.00,
+          "total": 199.90,
+          "frete": 10.00,
+          "totalFrete": 209.90,
+          "custo": 120.00,
+          "colecao": "VERAO 2027",
+          "fornecedor": "12.345.678/0001-90"
+        }
+      ]
+    }
+  ]
+}
+
+Response (400 Bad Request):
+{
+  "mensagem": "dataVendaInicio não pode ser maior que dataVendaFim."
+}
+
+Response (401 Unauthorized):
+{
+  "mensagem": "Token ausente, expirado ou inválido."
+}
 ```
 
-> ⚠️ Requer autenticação JWT. A paginação é realizada por venda, não por item.
+> ⚠️ Requer autenticação JWT (`[Authorize]`)
 
 ---
 
-### 4. Estoques (`/api/estoques`)
+### 5. Clientes Varejo (`/api/clientesvarejo`)
 
-#### GET `/api/estoques/total-agrupado` - Listar Estoques Total Agrupado
-Lista estoques agrupados por produto, marca, tamanho e coleção com totalizações.
+#### GET `/api/clientesvarejo` - Consultar Clientes de Varejo
+Retorna os clientes de varejo cadastrados, permitindo filtros por rede, código, CPF/CNPJ, nome e data de atualização.
+
+O filtro de nome permite LIKE. Exemplo: `%Marcio%`.
+
+```
+Request:
+GET /api/clientesvarejo?nome=%25Marcio%25&pagina=1&tamanhoPagina=50 HTTP/1.1
+Authorization: Bearer {JWT_TOKEN}
+
+Query Parameters:
+- rede (string, opcional): Código da rede/schema de origem
+- codigoCliente (string, opcional): Código único do cliente na origem
+- nome (string, opcional): Nome do cliente (suporta LIKE)
+- cpfCnpj (string, opcional): CPF ou CNPJ do cliente
+- atualizadoInicio (DateTime, opcional): Data/hora inicial de atualização
+- atualizadoFim (DateTime, opcional): Data/hora final de atualização
+- pagina (int, padrão: 1): Número da página
+- tamanhoPagina (int, padrão: 50): Registros por página (máx: 5000)
+
+Response (200 OK):
+{
+  "total": 500,
+  "pagina": 1,
+  "tamanhoPagina": 50,
+  "totalPaginas": 10,
+  "dados": [
+    {
+      "rede": "rede000001",
+      "codigoCliente": "00012345",
+      "nome": "MARCIO JUNIOR",
+      "apelido": "MARCIO",
+      "pessoa": 1,
+      "cpfCnpj": "123.456.789-00",
+      "rgIe": "12.345.678-9",
+      "docAuxiliar": "",
+      "email": "marcio@email.com",
+      "telefone1": "(11) 98765-4321",
+      "telefone2": null,
+      "telefone3": null,
+      "telefone4": null,
+      "cep": "01.426-003",
+      "endereco": "RUA OSCAR FREIRE, 1000",
+      "bairro": "JARDINS",
+      "cidade": "SÃO PAULO",
+      "uf": "SP",
+      "complemento": "APTO 101",
+      "enderecoCompleto": "RUA OSCAR FREIRE, 1000, APTO 101, JARDINS, SÃO PAULO, SP",
+      "naturalidade": "SÃO PAULO/SP",
+      "origem": "LOJA",
+      "estadoCivil": "CASADO",
+      "sexo": "M",
+      "nascimento": "1985-03-10",
+      "aniversario": "10/03",
+      "status": "Ativo",
+      "grupo": "VIP",
+      "atividade": "001",
+      "descricaoAtividade": "COMÉRCIO VAREJISTA",
+      "responsavel": "00010",
+      "nomeResponsavel": "JOÃO SILVA",
+      "empresa": "MATRIZ",
+      "cliente": true,
+      "fornecedor": false,
+      "funcionario": false,
+      "transportadora": false,
+      "conveniado": "Não",
+      "credito": 5000.00,
+      "bloqueia": 0.00,
+      "cadastro": "2020-01-15",
+      "atualizado": "2026-06-11T10:30:00",
+      "obs": null,
+      "marca": "SANTA LOLLA",
+      "dataUltimaCompra": "2026-08-25"
+    }
+  ]
+}
+
+Response (400 Bad Request):
+{
+  "mensagem": "atualizadoInicio não pode ser maior que atualizadoFim."
+}
+
+Response (401 Unauthorized):
+{
+  "mensagem": "Token ausente, expirado ou inválido."
+}
+```
+
+> ⚠️ Requer autenticação JWT (`[Authorize]`)
+
+---
+
+### 6. Estoques (`/api/estoques`)
+
+#### GET `/api/estoques` - Listar Estoque Atual Detalhado
+Lista o estoque atual detalhado por loja, produto, tamanho, cor e referência.
+
+```
+Request:
+GET /api/estoques?rede=rede000001&codigoLoja=00000001&pagina=1&tamanhoPagina=50 HTTP/1.1
+Authorization: Bearer {JWT_TOKEN}
+
+Query Parameters:
+- rede (string, opcional): Código da rede
+- codigoLoja (string, opcional): Código da loja/empresa
+- codigoProduto (string, opcional): Código base do produto
+- referencia (string, opcional): Referência do produto
+- tamanho (string, opcional): Tamanho do produto
+- cor (string, opcional): Cor do produto
+- descricaoColecao (string, opcional): Descrição da coleção (suporta LIKE)
+- descricaoLinha (string, opcional): Descrição da linha (suporta LIKE)
+- dataAtualizacaoInicio (DateTime, opcional): Data/hora inicial de atualização
+- dataAtualizacaoFim (DateTime, opcional): Data/hora final de atualização
+- pagina (int, padrão: 1): Número da página
+- tamanhoPagina (int, padrão: 500): Registros por página (máx: 5000)
+
+Response (200 OK):
+{
+  "total": 1500,
+  "pagina": 1,
+  "tamanhoPagina": 50,
+  "totalPaginas": 30,
+  "dados": [
+    {
+      "rede": "rede000001",
+      "codigoEmpresa": "00000001",
+      "cnpj": "28.803.454/0001-10",
+      "apelidoEmpresa": "SL - OSCAR FREIRE",
+      "nomeEmpresa": "SANTA LOLLA FRANQUIAS LTDA",
+      "codigoProduto": "123681",
+      "codigoLinx": "LINX123",
+      "descricaoProduto": "TENIS SUEDE BAKED",
+      "tamanho": "37",
+      "cor": "PRETO",
+      "grade": "ABC",
+      "referencia": "038F.11E4.0048.0157",
+      "marca": "SANTA LOLLA",
+      "grupo": "CALÇADOS",
+      "descricaoColecao": "VERAO 2027",
+      "descricaoLinha": "CASUAL",
+      "quantidade": 15,
+      "custo": 45.50,
+      "preco": 89.90,
+      "preco1": 85.00,
+      "preco2": 75.00,
+      "dataEstoque": "2026-06-11",
+      "dataCriacao": "2026-01-15",
+      "dataAtualizacao": "2026-06-11T07:44:02"
+    }
+  ]
+}
+
+Response (400 Bad Request):
+{
+  "mensagem": "dataAtualizacaoInicio não pode ser maior que dataAtualizacaoFim."
+}
+
+Response (401 Unauthorized):
+{
+  "mensagem": "Token ausente, expirado ou inválido."
+}
+```
+
+> ⚠️ Requer autenticação JWT (`[Authorize]`)
+
+#### GET `/api/estoques/total-agrupado` - Listar Estoque Total Agrupado
+Lista estoques agrupados por produto, referência, marca, grupo, coleção e linha, considerando todas as lojas, com totalização de quantidade e médias de custo/preço.
 
 ```
 Request:
@@ -609,171 +883,153 @@ Query Parameters:
 - nomeLoja (string, opcional): Nome da loja com suporte a LIKE (ex: %oscar%)
 - referencia (string, opcional): Referência do produto com suporte a LIKE
 - descricaoColecao (string, opcional): Descrição da coleção com suporte a LIKE
+- descricaoLinha (string, opcional): Descrição da linha com suporte a LIKE
 - pagina (int, padrão: 1): Número da página
 - tamanhoPagina (int, padrão: 500): Registros por página (máx: 5000)
 
 Response (200 OK):
-[
-  {
-    "rede": "RD01",
-    "codigoProduto": "123681",
-    "descricaoProduto": "TENIS SUEDE BAKED",
-    "referencia": "038F.11E4.0048.0157",
-    "marca": "SANTA LOLLA",
-    "grupo": "CALÇADOS",
-    "descricaoColecao": "VERAO 2027",
-    "quantidadeTotal": 3,
-    "custo": 45.50,
-    "preco": 89.90,
-    "preco1": 85.00,
-    "preco2": 75.00
-  }
-]
-```
-
-> ⚠️ Requer autenticação JWT. Retorna agregações com SUM de quantidade e AVG de preços.
-
----
-
-#### GET `/api/estoques`
-Lista estoques com filtros.
-
-```
-Request:
-GET /api/estoques?rede=RD01&loja=L001 HTTP/1.1
-Authorization: Bearer {JWT_TOKEN}
-
-Response (200 OK):
 {
-  "estoques": [
+  "total": 320,
+  "pagina": 1,
+  "tamanhoPagina": 50,
+  "totalPaginas": 7,
+  "dados": [
     {
-      "id": "E123",
-      "rede": "RD01",
-      "loja": "L001",
-      "produto": "P001",
-      "quantidade": 100,
-      "ultimaAtualizacao": "2024-01-15T10:00:00Z"
+      "rede": "rede000001",
+      "codigoProduto": "123681",
+      "descricaoProduto": "TENIS SUEDE BAKED",
+      "referencia": "038F.11E4.0048.0157",
+      "marca": "SANTA LOLLA",
+      "grupo": "CALÇADOS",
+      "descricaoColecao": "VERAO 2027",
+      "descricaoLinha": "CASUAL",
+      "quantidadeTotal": 3,
+      "custo": 45.50,
+      "preco": 89.90,
+      "preco1": 85.00,
+      "preco2": 75.00
     }
   ]
 }
-```
 
-> ⚠️ Requer autenticação JWT
-
----
-
-### 5. Clientes Varejo (`/api/clientesvarejo`) - NOVO
-
-#### GET `/api/clientesvarejo` - Listar Clientes de Varejo
-Consulta clientes de varejo com filtros avançados.
-
-```
-Request:
-GET /api/clientesvarejo?rede=RD01&nome=%25Marcio%25&pagina=1&tamanhoPagina=50 HTTP/1.1
-Authorization: Bearer {JWT_TOKEN}
-
-Query Parameters:
-- rede (string, opcional): Código da rede
-- codigoCliente (string, opcional): Código do cliente
-- cpfCnpj (string, opcional): CPF ou CNPJ
-- nome (string, opcional): Nome do cliente com suporte a LIKE (ex: %Marcio%)
-- atualizadoInicio (DateTime, opcional): Data inicial de atualização
-- atualizadoFim (DateTime, opcional): Data final de atualização
-- pagina (int, padrão: 1): Número da página
-- tamanhoPagina (int, padrão: 500): Registros por página (máx: 5000)
-
-Response (200 OK):
+Response (401 Unauthorized):
 {
-  "items": [
-    {
-      "rede": "RD01",
-      "codigoCliente": "CLI001",
-      "cpfCnpj": "12345678901234",
-      "nome": "Marcio Silva",
-      "email": "marcio@example.com",
-      "telefone": "(11) 99999-9999",
-      "cidade": "São Paulo",
-      "estado": "SP",
-      "status": "ativo",
-      "atualizado": "2024-01-15T10:00:00Z"
-    }
-  ],
-  "pagina": 1,
-  "totalPaginas": 10,
-  "totalRecords": 450
+  "mensagem": "Token ausente, expirado ou inválido."
 }
 ```
 
-> ⚠️ Requer autenticação JWT. Suporta filtro de nome com LIKE.
+> ⚠️ Requer autenticação JWT (`[Authorize]`)
 
 ---
 
-### 6. Lojas (`/api/lojas`)
+### 7. Lojas (`/api/lojas`)
 
-#### GET `/api/lojas` - Listar Lojas (ATUALIZADO)
-Lista todas as lojas cadastradas com filtros e paginação.
+#### GET `/api/lojas` - Listar Lojas
+Lista todas as lojas cadastradas com filtros por rede, código da loja e período de atualização.
 
 ```
 Request:
-GET /api/lojas?rede=RD01&codigoLoja=L001&lastUpdateInicio=2024-01-01&lastUpdateFim=2024-01-31&pagina=1&tamanhoPagina=50 HTTP/1.1
+GET /api/lojas?rede=rede000001&codigoLoja=00000001&lastUpdateInicio=2024-01-01T00:00:00&lastUpdateFim=2024-01-31T23:59:59&pagina=1&tamanhoPagina=50 HTTP/1.1
 Authorization: Bearer {JWT_TOKEN}
 
 Query Parameters:
 - rede (string, opcional): Código da rede
-- codigoLoja (string, opcional): Código da loja
-- lastUpdateInicio (DateTime, opcional): Data inicial de atualização
-- lastUpdateFim (DateTime, opcional): Data final de atualização
+- codigoLoja (string, opcional): Código da loja/empresa
+- lastUpdateInicio (DateTime, opcional): Data/hora inicial de atualização
+- lastUpdateFim (DateTime, opcional): Data/hora final de atualização
 - pagina (int, padrão: 1): Número da página
 - tamanhoPagina (int, padrão: 500): Registros por página (máx: 5000)
 
 Response (200 OK):
 {
-  "items": [
-    {
-      "rede": "RD01",
-      "codigoLoja": "L001",
-      "nomeLoja": "Loja Centro",
-      "endereco": "Rua Principal, 123",
-      "cidade": "São Paulo",
-      "estado": "SP",
-      "lastUpdate": "2024-01-15T10:00:00Z"
-    }
-  ],
+  "total": 245,
   "pagina": 1,
+  "tamanhoPagina": 50,
   "totalPaginas": 5,
-  "totalRecords": 245
+  "dados": [
+    {
+      "rede": "rede000001",
+      "codigoLoja": "00000001",
+      "nomeFantasia": "SL - OSCAR FREIRE",
+      "cnpj": "28.803.454/0001-10",
+      "cep": "01.426-003",
+      "marca": "SANTA LOLLA",
+      "dataAtualizacao": "2026-06-11T07:44:02"
+    }
+  ]
+}
+
+Response (400 Bad Request):
+{
+  "mensagem": "lastUpdateInicio não pode ser maior que lastUpdateFim."
+}
+
+Response (401 Unauthorized):
+{
+  "mensagem": "Token ausente, expirado ou inválido."
 }
 ```
 
-> ⚠️ Requer autenticação JWT. Resultado paginado com informações de lojas.
+> ⚠️ Requer autenticação JWT (`[Authorize]`)
 
 ---
 
-### 7. Vendedores (`/api/vendedores`)
+### 8. Vendedores (`/api/vendedores`)
 
 #### GET `/api/vendedores` - Listar Vendedores
-Lista todos os vendedores cadastrados.
+Lista os vendedores cadastrados, permitindo filtros por rede, loja, código do vendedor e período de atualização.
 
 ```
 Request:
-GET /api/vendedores HTTP/1.1
+GET /api/vendedores?rede=rede000001&codigoLoja=00000001&codigoVendedor=00084745&lastUpdateInicio=2024-01-01T00:00:00&lastUpdateFim=2024-01-31T23:59:59&pagina=1&tamanhoPagina=50 HTTP/1.1
 Authorization: Bearer {JWT_TOKEN}
+
+Query Parameters:
+- rede (string, opcional): Código da rede
+- codigoLoja (string, opcional): Código da loja/empresa
+- codigoVendedor (string, opcional): Código do vendedor
+- lastUpdateInicio (DateTime, opcional): Data/hora inicial de atualização
+- lastUpdateFim (DateTime, opcional): Data/hora final de atualização
+- pagina (int, padrão: 1): Número da página
+- tamanhoPagina (int, padrão: 500): Registros por página (máx: 5000)
 
 Response (200 OK):
 {
-  "vendedores": [
+  "total": 150,
+  "pagina": 1,
+  "tamanhoPagina": 50,
+  "totalPaginas": 3,
+  "dados": [
     {
-      "id": "V001",
-      "nome": "João Silva",
-      "email": "joao@example.com",
-      "rede": "RD01",
-      "status": "ativo"
+      "rede": "rede000001",
+      "codigoLoja": "00000001",
+      "nomeLoja": "SL - OSCAR FREIRE",
+      "marca": "SANTALOLLA",
+      "codigoVendedor": "00084745",
+      "nome": "THAIS MARTINS PEREIRA GODOIS",
+      "cpf": "453.580.568-74",
+      "cargo": "VENDEDORA",
+      "apelido": "THAIS MARTINS",
+      "dataAdmissao": "2019-02-01",
+      "dataDemissao": null,
+      "dataAtualizacao": "2026-06-11T10:09:32",
+      "status": "Ativo"
     }
   ]
 }
+
+Response (400 Bad Request):
+{
+  "mensagem": "lastUpdateInicio não pode ser maior que lastUpdateFim."
+}
+
+Response (401 Unauthorized):
+{
+  "mensagem": "Token ausente, expirado ou inválido."
+}
 ```
 
-> ⚠️ Requer autenticação JWT
+> ⚠️ Requer autenticação JWT (`[Authorize]`)
 
 ---
 
@@ -887,6 +1143,8 @@ builder.Services.AddSingleton<SqlConnectionFactory>();
 
 // Repositories
 builder.Services.AddScoped<IVendaRepository, VendaRepository>();
+builder.Services.AddScoped<IVendaProdutoRepository, VendaProdutoRepository>();
+builder.Services.AddScoped<IClienteVarejoRepository, ClienteVarejoRepository>();
 builder.Services.AddScoped<IEstoqueRepository, EstoqueRepository>();
 builder.Services.AddScoped<ILojaRepository, LojaRepository>();
 builder.Services.AddScoped<IVendedorRepository, VendedorRepository>();
@@ -1046,26 +1304,52 @@ curl -X GET http://localhost:5000/api/health \
 
 ## 📋 Alterações Recentes (Changelog)
 
+### v1.2.0 - [2024-01-XX]
+
+#### ✅ Novidades
+
+1. **GET `/api/vendas`** - Novo campo `horaVenda`
+   - Adicionado campo `horaVenda` (string, formato HH:MM) no response
+   - Fonte: `SETA_VENDAS_DETALHE.HORA_VENDA`
+   - Campo opcional, sem segundos
+
+2. **Modelos de Vendas** - Estrutura de response enriquecida
+   - `VendaResponse` agora inclui `vendaVinculada`, `tipoOperacao`, `marca`, `aliasId`, `apelido`, `nome`, `cpfCnpjCliente`
+   - Suporte a listas de `parcelas` e `pagamentos`
+
+3. **GET `/api/estoques/total-agrupado`** - Novo filtro e campo
+   - Adicionado filtro `descricaoLinha`
+   - Response passa a incluir `descricaoLinha`
+
+#### 📚 Documentação
+
+- README atualizado para refletir todos os endpoints, filtros e responses conforme os DTOs atuais
+- Adicionadas seções completas para `Vendas Produtos`, `Clientes Varejo` e `Estoques`
+- Removida documentação obsoleta (ex: POST `/api/vendas` inexistente)
+- Padronização do nome `tamanhoPagina` em todos os endpoints
+
+---
+
 ### v1.1.0 - [2024-01-XX]
 
 #### ✅ Novos Endpoints Adicionados
 
-1. **GET `/api/vendasprodutos`** - Operações de Produtos de Vendas (NOVO)
+1. **GET `/api/vendasprodutos`** - Operações de Produtos de Vendas
    - Retorna produtos/itens agrupados por venda
-   - Filtros: dataVendaInicio/Fim, lastUpdateInicio/Fim, rede, vendedor, referência, loja, cliente
+   - Filtros: dataVendaInicio/Fim, lastUpdateInicio/Fim, rede, venda, codVendedor, referência, apelido, cliente
    - Paginação por venda (não por item)
    - Padrão: 500 vendas por página (máx: 5000)
 
-2. **GET `/api/clientesvarejo`** - Consulta de Clientes de Varejo (NOVO)
+2. **GET `/api/clientesvarejo`** - Consulta de Clientes de Varejo
    - Filtra clientes por rede, código, CPF/CNPJ, nome
    - Suporte a filtro LIKE no campo nome
    - Validação de períodos de atualização
-   - Padrão: 500 registros por página (máx: 5000)
+   - Padrão: 50 registros por página (máx: 5000)
 
-3. **GET `/api/estoques/total-agrupado`** - Estoques Agrupados e Totalizados (NOVO)
-   - Agrupa estoques por produto, marca, tamanho e coleção
+3. **GET `/api/estoques/total-agrupado`** - Estoques Agrupados e Totalizados
+   - Agrupa estoques por produto, referência, marca, grupo, coleção e linha
    - Retorna: SUM(quantidade) e AVG(preços)
-   - Filtros disponíveis: nomeLoja (LIKE), referência (LIKE), descricaoColecao
+   - Filtros disponíveis: nomeLoja (LIKE), referência (LIKE), descricaoColecao, descricaoLinha
    - Removido: Campo `codigoColecao` conforme requisição
    - Mantido: Campo `descricaoColecao`
 
@@ -1076,9 +1360,15 @@ curl -X GET http://localhost:5000/api/health \
    - Paginação: 500 registros por página (máx: 5000)
    - Adicionada validação de períodos
 
-2. **GET `/api/vendas`** - Já suportava filtros, mantém compatibilidade
+2. **GET `/api/vendas`** - Mantém compatibilidade
    - Validação obrigatória de períodos (dataInicio/Fim ou lastUpdateInicio/Fim)
-   - Suporta filtros de rede, loja e observação
+   - Suporta filtros de rede, loja, nota fiscal e observação
+
+#### 🏗️ Infraestrutura
+
+- Adicionados repositories:
+  - `IVendaProdutoRepository` / `VendaProdutoRepository`
+  - `IClienteVarejoRepository` / `ClienteVarejoRepository`
 
 ---
 
@@ -1090,4 +1380,4 @@ curl -X GET http://localhost:5000/api/health \
 
 ---
 
-**Última atualização**: 2024-01-15 | **Versão API**: v1
+**Última atualização**: 2024-01-XX | **Versão API**: v1.2.0
