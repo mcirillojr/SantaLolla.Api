@@ -40,15 +40,16 @@ namespace SantaLolla.Api.Controllers
         /// <response code="403">Acesso não autorizado ao endpoint.</response>
         [HttpGet]
         [ProducesResponseType(
-            typeof(PagedResponse<ClienteVarejoResponse>),
-            StatusCodes.Status200OK
-        )]
+           typeof(PagedResponse<ClienteVarejoResponse>),
+           StatusCodes.Status200OK
+       )]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
+       
         public async Task<IActionResult> Listar(
-            [FromQuery] ClienteVarejoFiltroRequest filtro
-        )
+        [FromQuery] ClienteVarejoFiltroRequest filtro
+)
         {
             if (filtro.AtualizadoInicio.HasValue &&
                 filtro.AtualizadoFim.HasValue &&

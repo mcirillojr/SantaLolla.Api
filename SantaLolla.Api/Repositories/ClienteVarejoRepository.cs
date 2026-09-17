@@ -1,4 +1,5 @@
-﻿using Dapper;
+﻿using System.Data;
+using Dapper;
 using SantaLolla.Api.Data;
 using SantaLolla.Api.Models.ClientesVarejo;
 using SantaLolla.Api.Models.PagedResponse;
@@ -46,34 +47,161 @@ namespace SantaLolla.Api.Repositories
                 PrepararFiltroLike(filtro.CpfCnpj);
 
             const string sql = @"
-                SELECT
-                    COUNT(1)
-                FROM dbo.SETA_CLIENTES_VAREJO C WITH (NOLOCK)
-                WHERE C.ATIVO = 1
-                  AND (
-                        @Rede IS NULL
-                        OR C.REDE = @Rede
-                      )
-                  AND (
-                        @CodigoCliente IS NULL
-                        OR C.CODIGO_CLIENTE = @CodigoCliente
-                      )
-                  AND (
-                        @Nome IS NULL
-                        OR C.NOME LIKE @Nome
-                      )
-                  AND (
-                        @CpfCnpj IS NULL
-                        OR C.CPFCNPJ LIKE @CpfCnpj
-                      )
-                  AND (
-                        @AtualizadoInicio IS NULL
-                        OR C.ATUALIZADO >= @AtualizadoInicio
-                      )
-                  AND (
-                        @AtualizadoFim IS NULL
-                        OR C.ATUALIZADO <= @AtualizadoFim
-                      );
+                ------------------------------------------------------------
+                -- TOTAL DE REGISTROS
+                ------------------------------------------------------------
+
+SELECT
+    COUNT(1)
+FROM dbo.SETA_CLIENTES_VAREJO C WITH (NOLOCK)
+WHERE C.ATIVO = 1
+
+  AND (
+        @Rede IS NULL
+        OR C.REDE = @Rede
+      )
+
+  AND (
+        @CodigoCliente IS NULL
+        OR C.CODIGO_CLIENTE = @CodigoCliente
+      )
+
+  AND (
+        @Nome IS NULL
+        OR C.NOME LIKE @Nome
+      )
+
+  AND (
+        @CpfCnpj IS NULL
+        OR C.CPFCNPJ LIKE @CpfCnpj
+      )
+
+  AND (
+        @AtualizadoInicio IS NULL
+        OR C.ATUALIZADO >= @AtualizadoInicio
+      )
+
+  AND (
+        @AtualizadoFim IS NULL
+        OR C.ATUALIZADO <= @AtualizadoFim
+      )
+
+OPTION (RECOMPILE);
+
+
+                ------------------------------------------------------------
+                -- PRIMEIRO FILTRA E PAGINA OS CLIENTES
+                ------------------------------------------------------------
+
+                ;WITH CLIENTES_PAGINADOS AS
+                (
+                    SELECT
+                        C.ID_CLIENTE_VAREJO,
+
+                        C.REDE,
+                        C.CODIGO_CLIENTE,
+
+                        C.NOME,
+                        C.APELIDO,
+                        C.PESSOA,
+
+                        C.CPFCNPJ,
+                        C.RGIE,
+                        C.DOCAUXILIAR,
+
+                        C.EMAIL,
+                        C.TELEFONE1,
+                        C.TELEFONE2,
+                        C.TELEFONE3,
+                        C.TELEFONE4,
+
+                        C.CEP,
+                        C.ENDERECO,
+                        C.BAIRRO,
+                        C.CIDADE,
+                        C.UF,
+                        C.COMPLEMENTO,
+                        C.ENDERECO_COMPLETO,
+
+                        C.NATURALIDADE,
+                        C.ORIGEM,
+                        C.ESTADOCIVIL,
+                        C.SEXO,
+                        C.NASCIMENTO,
+                        C.ANIVERSARIO,
+
+                        C.STATUS,
+                        C.GRUPO,
+                        C.ATIVIDADE,
+                        C.DESCRICAO_ATIVIDADE,
+
+                        C.RESPONSAVEL,
+                        C.NOME_RESPONSAVEL,
+
+                        C.EMPRESA,
+                        C.CLIENTE,
+                        C.FORNECEDOR,
+                        C.FUNCIONARIO,
+                        C.TRANSPORTADORA,
+                        C.CONVENIADO,
+
+                        C.CREDITO,
+                        C.BLOQUEIA,
+
+                        C.CADASTRO,
+                        C.ATUALIZADO,
+
+                        C.OBS,
+
+                        C.DATA_ATUALIZACAO
+
+                    FROM dbo.SETA_CLIENTES_VAREJO C WITH (NOLOCK)
+
+                 WHERE C.ATIVO = 1
+
+  AND (
+        @Rede IS NULL
+        OR C.REDE = @Rede
+      )
+
+  AND (
+        @CodigoCliente IS NULL
+        OR C.CODIGO_CLIENTE = @CodigoCliente
+      )
+
+  AND (
+        @Nome IS NULL
+        OR C.NOME LIKE @Nome
+      )
+
+  AND (
+        @CpfCnpj IS NULL
+        OR C.CPFCNPJ LIKE @CpfCnpj
+      )
+
+  AND (
+        @AtualizadoInicio IS NULL
+        OR C.ATUALIZADO >= @AtualizadoInicio
+      )
+
+  AND (
+        @AtualizadoFim IS NULL
+        OR C.ATUALIZADO <= @AtualizadoFim
+      )
+
+                    ORDER BY
+                        C.REDE,
+                        C.CODIGO_CLIENTE,
+                        C.ID_CLIENTE_VAREJO
+
+                    OFFSET @Offset ROWS
+
+                    FETCH NEXT @TamanhoPagina ROWS ONLY
+                )
+
+                ------------------------------------------------------------
+                -- SOMENTE AGORA BUSCA ÚLTIMA VENDA / MARCA
+                ------------------------------------------------------------
 
                 SELECT
                     C.REDE AS Rede,
@@ -135,16 +263,19 @@ namespace SantaLolla.Api.Repositories
 
                     C.OBS AS Obs
 
-                FROM dbo.SETA_CLIENTES_VAREJO C WITH (NOLOCK)
+                FROM CLIENTES_PAGINADOS C
 
                 OUTER APPLY
                 (
                     SELECT TOP 1
                         V.DATA_VENDA,
                         V.CODIGO_EMPRESA
+
                     FROM dbo.SETA_VENDAS_DETALHE V WITH (NOLOCK)
+
                     WHERE V.REDE = C.REDE
                       AND V.CODCLIENTE = C.CODIGO_CLIENTE
+
                     ORDER BY
                         V.DATA_VENDA DESC,
                         V.LASTUPDATE_ORIGEM DESC,
@@ -155,66 +286,75 @@ namespace SantaLolla.Api.Repositories
                 (
                     SELECT TOP 1
                         L.MARCA
+
                     FROM dbo.SETA_LOJAS L WITH (NOLOCK)
+
                     WHERE L.REDE = C.REDE
                       AND L.CODIGO_EMPRESA =
                           ULTIMA_VENDA.CODIGO_EMPRESA
                       AND L.ATIVO = 1
+
                     ORDER BY
                         L.ID_LOJA DESC
                 ) ULTIMA_LOJA
 
-                WHERE C.ATIVO = 1
-                  AND (
-                        @Rede IS NULL
-                        OR C.REDE = @Rede
-                      )
-                  AND (
-                        @CodigoCliente IS NULL
-                        OR C.CODIGO_CLIENTE = @CodigoCliente
-                      )
-                  AND (
-                        @Nome IS NULL
-                        OR C.NOME LIKE @Nome
-                      )
-                AND (
-                      @CpfCnpj IS NULL
-                      OR C.CPFCNPJ = @CpfCnpj
-                    )
-                  AND (
-                        @AtualizadoInicio IS NULL
-                        OR C.ATUALIZADO >= @AtualizadoInicio
-                      )
-                  AND (
-                        @AtualizadoFim IS NULL
-                        OR C.ATUALIZADO <= @AtualizadoFim
-                      )
-
                 ORDER BY
                     C.REDE,
-                    C.CODIGO_CLIENTE
+                    C.CODIGO_CLIENTE,
+                    C.ID_CLIENTE_VAREJO
 
-                OFFSET @Offset ROWS
-                FETCH NEXT @TamanhoPagina ROWS ONLY;
+                OPTION (RECOMPILE);
             ";
 
-            var parametros = new
-            {
-                Rede =
-                    NormalizarTexto(filtro.Rede),
+            var parametros = new DynamicParameters();
 
-                CodigoCliente =
-                    NormalizarTexto(filtro.CodigoCliente),
+            parametros.Add(
+                "@Rede",
+                NormalizarTexto(filtro.Rede),
+                DbType.String
+            );
 
-                Nome = nome,
-                CpfCnpj = NormalizarTexto(filtro.CpfCnpj),
+            parametros.Add(
+                "@CodigoCliente",
+                NormalizarTexto(filtro.CodigoCliente),
+                DbType.String
+            );
 
+            parametros.Add(
+                "@Nome",
+                nome,
+                DbType.String
+            );
+
+            parametros.Add(
+                "@CpfCnpj",
+                cpfCnpj,
+                DbType.String
+            );
+
+            parametros.Add(
+                "@AtualizadoInicio",
                 filtro.AtualizadoInicio,
-                filtro.AtualizadoFim,
+                DbType.Date
+            );
 
-                Offset = offset,
-                filtro.TamanhoPagina
-            };
+            parametros.Add(
+                "@AtualizadoFim",
+                filtro.AtualizadoFim,
+                DbType.Date
+            );
+
+            parametros.Add(
+                "@Offset",
+                offset,
+                DbType.Int32
+            );
+
+            parametros.Add(
+                "@TamanhoPagina",
+                filtro.TamanhoPagina,
+                DbType.Int32
+            );
 
             using var connection =
                 _connectionFactory.CreateConnection();
@@ -222,7 +362,8 @@ namespace SantaLolla.Api.Repositories
             using var resultado =
                 await connection.QueryMultipleAsync(
                     sql,
-                    parametros
+                    parametros,
+                    commandTimeout: 60
                 );
 
             var total =
