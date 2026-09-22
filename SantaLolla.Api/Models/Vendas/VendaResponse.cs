@@ -81,6 +81,16 @@ namespace SantaLolla.Api.Models.Vendas
         [JsonPropertyName("tipoOperacao")]
         public string? TipoOperacao { get; set; }
 
+
+        /// <summary>
+        /// Indica se a venda é de e-commerce.
+        /// </summary>
+        /// <remarks>
+        /// true = venda de e-commerce.
+        /// false = venda física.
+        /// </remarks>
+        public bool Ecommerce { get; set; }
+
         /// <summary>
         /// Data da venda.
         /// </summary>

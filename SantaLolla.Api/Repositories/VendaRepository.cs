@@ -178,6 +178,7 @@ namespace SantaLolla.Api.Repositories
 
                     V.VENDA_VINCULADA AS VendaVinculada,
                     V.TIPO_OPERACAO AS TipoOperacao,
+                    V.ECOMMERCE AS Ecommerce,
 
                     V.CODVENDEDOR AS CodigoVendedor,
                     V.VENDEDOR AS Vendedor,
