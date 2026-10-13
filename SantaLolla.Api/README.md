@@ -219,6 +219,89 @@ A API implementa um sistema de **controle de acesso granular por endpoint**, gar
 
 #### O que é Validado
 
+## 🔒 Controle de Acesso por Rede
+
+Foi adicionado suporte para filtrar acessos por "rede" (identificador de PDV/loja) para terceiros integrados. A validação é feita pelo middleware PermissaoTerceiroMiddleware que, após validar token e permissão de endpoint, carrega a configuração de redes permitidas do terceiro e aplica as regras abaixo.
+
+Comportamento principal:
+
+- Se o terceiro tem `ACESSO_TODAS_REDES = 1`, pode acessar todas as redes sem restrição.
+- Caso contrário, apenas as redes listadas em `SETA_API_TERCEIROS_REDES` com `ATIVO = 1` são permitidas.
+- O cliente pode informar explicitamente a rede via query string: `?Rede=rede000184`. Quando informada, a rede é validada imediatamente pelo middleware.
+- Se a rede informada não estiver permitida, o middleware retorna 403 (Forbidden).
+
+Variáveis disponibilizadas no contexto da requisição (HttpContext.Items):
+
+- `IdTerceiro` — id do terceiro extraído do token.
+- `AcessoTodasRedes` — booleano indicando se o terceiro tem acesso global.
+- `RedesPermitidas` — lista de strings com as redes ativas permitidas para o terceiro.
+
+### SQL de Migração (exemplos)
+
+Os scripts a seguir mostram as alterações de esquema necessárias para suportar o controle por rede (exemplos que já foram aplicados no ambiente de desenvolvimento):
+
+```sql
+USE [SetaIntegracao];
+GO
+
+IF COL_LENGTH('dbo.SETA_API_TERCEIROS','ACESSO_TODAS_REDES') IS NULL
+BEGIN
+    ALTER TABLE dbo.SETA_API_TERCEIROS
+    ADD ACESSO_TODAS_REDES BIT NOT NULL
+        CONSTRAINT DF_SETA_API_TERCEIROS_ACESSO_TODAS_REDES
+        DEFAULT 0;
+END;
+GO
+
+IF OBJECT_ID('dbo.SETA_API_TERCEIROS_REDES','U') IS NULL
+BEGIN
+    CREATE TABLE dbo.SETA_API_TERCEIROS_REDES
+    (
+        ID_TERCEIRO_REDE BIGINT IDENTITY(1,1) NOT NULL,
+        ID_TERCEIRO BIGINT NOT NULL,
+        REDE VARCHAR(20) NOT NULL,
+        ATIVO BIT NOT NULL DEFAULT 1,
+        DATA_CRIACAO DATETIME NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT PK_SETA_API_TERCEIROS_REDES PRIMARY KEY (ID_TERCEIRO_REDE),
+        CONSTRAINT FK_SETA_API_TERCEIROS_REDES_TERCEIROS FOREIGN KEY (ID_TERCEIRO) REFERENCES dbo.SETA_API_TERCEIROS(ID_TERCEIRO)
+    );
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_SETA_API_TERCEIROS_REDES_TERCEIRO_REDE' AND object_id = OBJECT_ID('dbo.SETA_API_TERCEIROS_REDES'))
+BEGIN
+    CREATE UNIQUE NONCLUSTERED INDEX UX_SETA_API_TERCEIROS_REDES_TERCEIRO_REDE ON dbo.SETA_API_TERCEIROS_REDES (ID_TERCEIRO, REDE);
+END;
+GO
+
+-- Exemplo de inserção
+INSERT INTO dbo.SETA_API_TERCEIROS_REDES (ID_TERCEIRO, REDE, ATIVO) VALUES (1, 'rede000184', 1);
+```
+
+### Exemplo de Requisição
+
+Exemplo de chamada informando a rede explicitamente:
+
+```
+GET /api/Vendas?Rede=rede000184
+Authorization: Bearer {JWT_TOKEN}
+```
+
+Comportamento esperado:
+
+- Se o token pertence a um terceiro com `ACESSO_TODAS_REDES = 1`, a requisição segue normalmente.
+- Se `ACESSO_TODAS_REDES = 0` e `rede000184` está na lista de `RedesPermitidas`, a requisição segue normalmente.
+- Caso contrário, o middleware retorna 403 com mensagem explicativa.
+
+### Implementação / Observações
+
+- O middleware `PermissaoTerceiroMiddleware` chama `ITerceiroRepository.ObterAcessoRedesAsync(long idTerceiro)` para obter `AcessoTodasRedes` e `RedesPermitidas`.
+- Os controllers e serviços que precisarem dessa informação durante a requisição podem acessar `HttpContext.Items["IdTerceiro"]`, `HttpContext.Items["AcessoTodasRedes"]` e `HttpContext.Items["RedesPermitidas"]`.
+- Se houver discrepância de versões binárias (ex.: interface modificada mas projeto não recompilado), limpe e reconstrua a solução.
+
+> Observação: aplique os scripts de migração em ambiente de homologação antes de produção e siga o processo de deploy da sua equipe.
+
+
 | Aspecto | Descrição |
 |---------|-----------|
 | **ID do Terceiro** | Extraído do JWT (claim: `id_terceiro`) |
