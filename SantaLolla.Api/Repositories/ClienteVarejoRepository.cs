@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using Dapper;
+using Microsoft.AspNetCore.Http;
 using SantaLolla.Api.Data;
 using SantaLolla.Api.Models.ClientesVarejo;
 using SantaLolla.Api.Models.PagedResponse;
@@ -10,11 +11,14 @@ namespace SantaLolla.Api.Repositories
     public class ClienteVarejoRepository : IClienteVarejoRepository
     {
         private readonly SqlConnectionFactory _connectionFactory;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public ClienteVarejoRepository(
-            SqlConnectionFactory connectionFactory)
+            SqlConnectionFactory connectionFactory,
+            IHttpContextAccessor httpContextAccessor)
         {
             _connectionFactory = connectionFactory;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<PagedResponse<ClienteVarejoResponse>> ListarAsync(
@@ -36,6 +40,34 @@ namespace SantaLolla.Api.Repositories
                 filtro.TamanhoPagina = 5000;
             }
 
+            // -----------------------------------------------------
+            // ACESSO ÀS REDES DO TERCEIRO
+            // -----------------------------------------------------
+            var httpContext =
+                _httpContextAccessor.HttpContext;
+
+            var acessoTodasRedes =
+                httpContext?.Items["AcessoTodasRedes"] is bool acesso
+                    && acesso;
+
+            var redesPermitidas =
+                httpContext?.Items["RedesPermitidas"] as List<string>
+                ?? new List<string>();
+
+            // -----------------------------------------------------
+            // TERCEIRO RESTRITO SEM NENHUMA REDE
+            // -----------------------------------------------------
+            if (!acessoTodasRedes &&
+                redesPermitidas.Count == 0)
+            {
+                return PagedResponse<ClienteVarejoResponse>.Create(
+                    new List<ClienteVarejoResponse>(),
+                    0,
+                    filtro.Pagina,
+                    filtro.TamanhoPagina
+                );
+            }
+
             var offset =
                 (filtro.Pagina - 1) *
                 filtro.TamanhoPagina;
@@ -50,49 +82,52 @@ namespace SantaLolla.Api.Repositories
                 ------------------------------------------------------------
                 -- TOTAL DE REGISTROS
                 ------------------------------------------------------------
+                SELECT
+                    COUNT(1)
+                FROM dbo.SETA_CLIENTES_VAREJO C WITH (NOLOCK)
+                WHERE C.ATIVO = 1
 
-SELECT
-    COUNT(1)
-FROM dbo.SETA_CLIENTES_VAREJO C WITH (NOLOCK)
-WHERE C.ATIVO = 1
+                  AND (
+                        @AcessoTodasRedes = 1
+                        OR C.REDE IN @RedesPermitidas
+                      )
 
-  AND (
-        @Rede IS NULL
-        OR C.REDE = @Rede
-      )
+                  AND (
+                        @Rede IS NULL
+                        OR C.REDE = @Rede
+                      )
 
-  AND (
-        @CodigoCliente IS NULL
-        OR C.CODIGO_CLIENTE = @CodigoCliente
-      )
+                  AND (
+                        @CodigoCliente IS NULL
+                        OR C.CODIGO_CLIENTE = @CodigoCliente
+                      )
 
-  AND (
-        @Nome IS NULL
-        OR C.NOME LIKE @Nome
-      )
+                  AND (
+                        @Nome IS NULL
+                        OR C.NOME LIKE @Nome
+                      )
 
-  AND (
-        @CpfCnpj IS NULL
-        OR C.CPFCNPJ LIKE @CpfCnpj
-      )
+                  AND (
+                        @CpfCnpj IS NULL
+                        OR C.CPFCNPJ LIKE @CpfCnpj
+                      )
 
-  AND (
-        @AtualizadoInicio IS NULL
-        OR C.ATUALIZADO >= @AtualizadoInicio
-      )
+                  AND (
+                        @AtualizadoInicio IS NULL
+                        OR C.ATUALIZADO >= @AtualizadoInicio
+                      )
 
-  AND (
-        @AtualizadoFim IS NULL
-        OR C.ATUALIZADO <= @AtualizadoFim
-      )
+                  AND (
+                        @AtualizadoFim IS NULL
+                        OR C.ATUALIZADO <= @AtualizadoFim
+                      )
 
-OPTION (RECOMPILE);
+                OPTION (RECOMPILE);
 
 
                 ------------------------------------------------------------
                 -- PRIMEIRO FILTRA E PAGINA OS CLIENTES
                 ------------------------------------------------------------
-
                 ;WITH CLIENTES_PAGINADOS AS
                 (
                     SELECT
@@ -157,37 +192,42 @@ OPTION (RECOMPILE);
 
                     FROM dbo.SETA_CLIENTES_VAREJO C WITH (NOLOCK)
 
-                 WHERE C.ATIVO = 1
+                    WHERE C.ATIVO = 1
 
-  AND (
-        @Rede IS NULL
-        OR C.REDE = @Rede
-      )
+                      AND (
+                            @AcessoTodasRedes = 1
+                            OR C.REDE IN @RedesPermitidas
+                          )
 
-  AND (
-        @CodigoCliente IS NULL
-        OR C.CODIGO_CLIENTE = @CodigoCliente
-      )
+                      AND (
+                            @Rede IS NULL
+                            OR C.REDE = @Rede
+                          )
 
-  AND (
-        @Nome IS NULL
-        OR C.NOME LIKE @Nome
-      )
+                      AND (
+                            @CodigoCliente IS NULL
+                            OR C.CODIGO_CLIENTE = @CodigoCliente
+                          )
 
-  AND (
-        @CpfCnpj IS NULL
-        OR C.CPFCNPJ LIKE @CpfCnpj
-      )
+                      AND (
+                            @Nome IS NULL
+                            OR C.NOME LIKE @Nome
+                          )
 
-  AND (
-        @AtualizadoInicio IS NULL
-        OR C.ATUALIZADO >= @AtualizadoInicio
-      )
+                      AND (
+                            @CpfCnpj IS NULL
+                            OR C.CPFCNPJ LIKE @CpfCnpj
+                          )
 
-  AND (
-        @AtualizadoFim IS NULL
-        OR C.ATUALIZADO <= @AtualizadoFim
-      )
+                      AND (
+                            @AtualizadoInicio IS NULL
+                            OR C.ATUALIZADO >= @AtualizadoInicio
+                          )
+
+                      AND (
+                            @AtualizadoFim IS NULL
+                            OR C.ATUALIZADO <= @AtualizadoFim
+                          )
 
                     ORDER BY
                         C.REDE,
@@ -202,7 +242,6 @@ OPTION (RECOMPILE);
                 ------------------------------------------------------------
                 -- SOMENTE AGORA BUSCA ÚLTIMA VENDA / MARCA
                 ------------------------------------------------------------
-
                 SELECT
                     C.REDE AS Rede,
                     C.CODIGO_CLIENTE AS CodigoCliente,
@@ -306,8 +345,26 @@ OPTION (RECOMPILE);
                 OPTION (RECOMPILE);
             ";
 
-            var parametros = new DynamicParameters();
+            var parametros =
+                new DynamicParameters();
 
+            // -----------------------------------------------------
+            // SEGURANÇA DE REDES
+            // -----------------------------------------------------
+            parametros.Add(
+                "@AcessoTodasRedes",
+                acessoTodasRedes,
+                DbType.Boolean
+            );
+
+            parametros.Add(
+                "@RedesPermitidas",
+                redesPermitidas
+            );
+
+            // -----------------------------------------------------
+            // FILTROS
+            // -----------------------------------------------------
             parametros.Add(
                 "@Rede",
                 NormalizarTexto(filtro.Rede),

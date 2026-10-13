@@ -1,4 +1,5 @@
 using Dapper;
+using Microsoft.AspNetCore.Http;
 using SantaLolla.Api.Data;
 using SantaLolla.Api.Models.Estoques;
 using SantaLolla.Api.Models.PagedResponse;
@@ -9,11 +10,14 @@ namespace SantaLolla.Api.Repositories
     public class EstoqueRepository : IEstoqueRepository
     {
         private readonly SqlConnectionFactory _connectionFactory;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public EstoqueRepository(
-            SqlConnectionFactory connectionFactory)
+            SqlConnectionFactory connectionFactory,
+            IHttpContextAccessor httpContextAccessor)
         {
             _connectionFactory = connectionFactory;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<PagedResponse<EstoqueResponse>> ListarAsync(
@@ -34,6 +38,34 @@ namespace SantaLolla.Api.Repositories
                 filtro.TamanhoPagina = 5000;
             }
 
+            // -----------------------------------------------------
+            // ACESSO ÀS REDES DO TERCEIRO
+            // -----------------------------------------------------
+            var httpContext =
+                _httpContextAccessor.HttpContext;
+
+            var acessoTodasRedes =
+                httpContext?.Items["AcessoTodasRedes"] is bool acesso
+                    && acesso;
+
+            var redesPermitidas =
+                httpContext?.Items["RedesPermitidas"] as List<string>
+                ?? new List<string>();
+
+            // -----------------------------------------------------
+            // TERCEIRO RESTRITO SEM NENHUMA REDE
+            // -----------------------------------------------------
+            if (!acessoTodasRedes &&
+                redesPermitidas.Count == 0)
+            {
+                return PagedResponse<EstoqueResponse>.Create(
+                    new List<EstoqueResponse>(),
+                    0,
+                    filtro.Pagina,
+                    filtro.TamanhoPagina
+                );
+            }
+
             var offset =
                 (filtro.Pagina - 1) *
                 filtro.TamanhoPagina;
@@ -50,48 +82,65 @@ namespace SantaLolla.Api.Repositories
                 ------------------------------------------------------------
                 SELECT
                     COUNT(1)
+
                 FROM dbo.SETA_ESTOQUE_ATUAL E WITH (NOLOCK)
+
                 WHERE
                     (
+                        @AcessoTodasRedes = 1
+                        OR E.REDE IN @RedesPermitidas
+                    )
+
+                    AND (
                         @Rede IS NULL
                         OR E.REDE = @Rede
                     )
+
                     AND (
                         @CodigoLoja IS NULL
                         OR E.CODIGO_EMPRESA = @CodigoLoja
                     )
+
                     AND (
                         @CodigoProduto IS NULL
                         OR E.CODIGO_PRODUTO = @CodigoProduto
                     )
+
                     AND (
                         @Referencia IS NULL
                         OR E.REFERENCIA = @Referencia
                     )
+
                     AND (
                         @Tamanho IS NULL
                         OR E.TAMANHO = @Tamanho
                     )
+
                     AND (
                         @Cor IS NULL
                         OR E.COR = @Cor
                     )
+
                     AND (
                         @DescricaoColecao IS NULL
                         OR E.DESCRICAO_COLECAO LIKE @DescricaoColecao
                     )
+
                     AND (
                         @DescricaoLinha IS NULL
                         OR E.DESCRICAO_LINHA LIKE @DescricaoLinha
                     )
+
                     AND (
                         @DataAtualizacaoInicio IS NULL
                         OR E.DATA_ATUALIZACAO >= @DataAtualizacaoInicio
                     )
+
                     AND (
                         @DataAtualizacaoFim IS NULL
                         OR E.DATA_ATUALIZACAO <= @DataAtualizacaoFim
                     );
+
 
                 ------------------------------------------------------------
                 -- DADOS DO ESTOQUE
@@ -136,50 +185,67 @@ namespace SantaLolla.Api.Repositories
                 (
                     SELECT TOP 1
                         P.CODIGO_LINX
+
                     FROM dbo.SETA_PRODUTOS P WITH (NOLOCK)
+
                     WHERE P.REDE = 'public'
                       AND P.CODIGO_PRODUTO = E.CODIGO_PRODUTO
+
                     ORDER BY
                         P.ID_PRODUTO DESC
                 ) PRODUTO
 
                 WHERE
                     (
+                        @AcessoTodasRedes = 1
+                        OR E.REDE IN @RedesPermitidas
+                    )
+
+                    AND (
                         @Rede IS NULL
                         OR E.REDE = @Rede
                     )
+
                     AND (
                         @CodigoLoja IS NULL
                         OR E.CODIGO_EMPRESA = @CodigoLoja
                     )
+
                     AND (
                         @CodigoProduto IS NULL
                         OR E.CODIGO_PRODUTO = @CodigoProduto
                     )
+
                     AND (
                         @Referencia IS NULL
                         OR E.REFERENCIA = @Referencia
                     )
+
                     AND (
                         @Tamanho IS NULL
                         OR E.TAMANHO = @Tamanho
                     )
+
                     AND (
                         @Cor IS NULL
                         OR E.COR = @Cor
                     )
+
                     AND (
                         @DescricaoColecao IS NULL
                         OR E.DESCRICAO_COLECAO LIKE @DescricaoColecao
                     )
+
                     AND (
                         @DescricaoLinha IS NULL
                         OR E.DESCRICAO_LINHA LIKE @DescricaoLinha
                     )
+
                     AND (
                         @DataAtualizacaoInicio IS NULL
                         OR E.DATA_ATUALIZACAO >= @DataAtualizacaoInicio
                     )
+
                     AND (
                         @DataAtualizacaoFim IS NULL
                         OR E.DATA_ATUALIZACAO <= @DataAtualizacaoFim
@@ -197,6 +263,12 @@ namespace SantaLolla.Api.Repositories
 
             var parametros = new
             {
+                AcessoTodasRedes =
+                    acessoTodasRedes,
+
+                RedesPermitidas =
+                    redesPermitidas,
+
                 Rede =
                     NormalizarTexto(filtro.Rede),
 
@@ -252,6 +324,7 @@ namespace SantaLolla.Api.Repositories
             );
         }
 
+
         public async Task<
             PagedResponse<EstoqueTotalAgrupadoResponse>>
             ListarTotalAgrupadoAsync(
@@ -270,6 +343,34 @@ namespace SantaLolla.Api.Repositories
             if (filtro.TamanhoPagina > 5000)
             {
                 filtro.TamanhoPagina = 5000;
+            }
+
+            // -----------------------------------------------------
+            // ACESSO ÀS REDES DO TERCEIRO
+            // -----------------------------------------------------
+            var httpContext =
+                _httpContextAccessor.HttpContext;
+
+            var acessoTodasRedes =
+                httpContext?.Items["AcessoTodasRedes"] is bool acesso
+                    && acesso;
+
+            var redesPermitidas =
+                httpContext?.Items["RedesPermitidas"] as List<string>
+                ?? new List<string>();
+
+            // -----------------------------------------------------
+            // TERCEIRO RESTRITO SEM NENHUMA REDE
+            // -----------------------------------------------------
+            if (!acessoTodasRedes &&
+                redesPermitidas.Count == 0)
+            {
+                return PagedResponse<EstoqueTotalAgrupadoResponse>.Create(
+                    new List<EstoqueTotalAgrupadoResponse>(),
+                    0,
+                    filtro.Pagina,
+                    filtro.TamanhoPagina
+                );
             }
 
             var offset =
@@ -294,6 +395,7 @@ namespace SantaLolla.Api.Repositories
                 ------------------------------------------------------------
                 SELECT
                     COUNT(1)
+
                 FROM
                 (
                     SELECT
@@ -305,24 +407,35 @@ namespace SantaLolla.Api.Repositories
                         GRUPO,
                         DESCRICAO_COLECAO,
                         DESCRICAO_LINHA
+
                     FROM dbo.SETA_ESTOQUE_ATUAL WITH (NOLOCK)
+
                     WHERE
                         (
+                            @AcessoTodasRedes = 1
+                            OR REDE IN @RedesPermitidas
+                        )
+
+                        AND (
                             @NomeLoja IS NULL
                             OR APELIDO_EMPRESA LIKE @NomeLoja
                         )
+
                         AND (
                             @Referencia IS NULL
                             OR REFERENCIA LIKE @Referencia
                         )
+
                         AND (
                             @DescricaoColecao IS NULL
                             OR DESCRICAO_COLECAO LIKE @DescricaoColecao
                         )
+
                         AND (
                             @DescricaoLinha IS NULL
                             OR DESCRICAO_LINHA LIKE @DescricaoLinha
                         )
+
                     GROUP BY
                         REDE,
                         CODIGO_PRODUTO,
@@ -332,9 +445,12 @@ namespace SantaLolla.Api.Repositories
                         GRUPO,
                         DESCRICAO_COLECAO,
                         DESCRICAO_LINHA
+
                     HAVING
                         SUM(QUANTIDADE) <> 0
+
                 ) AS TOTAL_AGRUPADO;
+
 
                 ------------------------------------------------------------
                 -- DADOS AGRUPADOS
@@ -360,17 +476,25 @@ namespace SantaLolla.Api.Repositories
 
                 WHERE
                     (
+                        @AcessoTodasRedes = 1
+                        OR REDE IN @RedesPermitidas
+                    )
+
+                    AND (
                         @NomeLoja IS NULL
                         OR APELIDO_EMPRESA LIKE @NomeLoja
                     )
+
                     AND (
                         @Referencia IS NULL
                         OR REFERENCIA LIKE @Referencia
                     )
+
                     AND (
                         @DescricaoColecao IS NULL
                         OR DESCRICAO_COLECAO LIKE @DescricaoColecao
                     )
+
                     AND (
                         @DescricaoLinha IS NULL
                         OR DESCRICAO_LINHA LIKE @DescricaoLinha
@@ -400,6 +524,12 @@ namespace SantaLolla.Api.Repositories
 
             var parametros = new
             {
+                AcessoTodasRedes =
+                    acessoTodasRedes,
+
+                RedesPermitidas =
+                    redesPermitidas,
+
                 NomeLoja =
                     nomeLoja,
 
@@ -442,6 +572,7 @@ namespace SantaLolla.Api.Repositories
                 );
         }
 
+
         private static string? NormalizarTexto(
             string? valor)
         {
@@ -449,6 +580,7 @@ namespace SantaLolla.Api.Repositories
                 ? null
                 : valor.Trim();
         }
+
 
         private static string? PrepararFiltroLike(
             string? valor)

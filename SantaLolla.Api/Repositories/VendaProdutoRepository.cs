@@ -1,4 +1,5 @@
 ﻿using Dapper;
+using Microsoft.AspNetCore.Http;
 using SantaLolla.Api.Data;
 using SantaLolla.Api.Models.PagedResponse;
 using SantaLolla.Api.Models.VendasProdutos;
@@ -9,11 +10,14 @@ namespace SantaLolla.Api.Repositories
     public class VendaProdutoRepository : IVendaProdutoRepository
     {
         private readonly SqlConnectionFactory _connectionFactory;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public VendaProdutoRepository(
-            SqlConnectionFactory connectionFactory)
+            SqlConnectionFactory connectionFactory,
+            IHttpContextAccessor httpContextAccessor)
         {
             _connectionFactory = connectionFactory;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<PagedResponse<VendaProdutoResponse>> ListarAsync(
@@ -33,6 +37,34 @@ namespace SantaLolla.Api.Repositories
             if (filtro.TamanhoPagina > 5000)
             {
                 filtro.TamanhoPagina = 5000;
+            }
+
+            // -----------------------------------------------------
+            // ACESSO ÀS REDES DO TERCEIRO
+            // -----------------------------------------------------
+            var httpContext =
+                _httpContextAccessor.HttpContext;
+
+            var acessoTodasRedes =
+                httpContext?.Items["AcessoTodasRedes"] is bool acesso
+                    && acesso;
+
+            var redesPermitidas =
+                httpContext?.Items["RedesPermitidas"] as List<string>
+                ?? new List<string>();
+
+            // -----------------------------------------------------
+            // TERCEIRO RESTRITO SEM NENHUMA REDE
+            // -----------------------------------------------------
+            if (!acessoTodasRedes &&
+                redesPermitidas.Count == 0)
+            {
+                return PagedResponse<VendaProdutoResponse>.Create(
+                    new List<VendaProdutoResponse>(),
+                    0,
+                    filtro.Pagina,
+                    filtro.TamanhoPagina
+                );
             }
 
             var offset =
@@ -59,52 +91,72 @@ namespace SantaLolla.Api.Repositories
                     SELECT
                         REDE,
                         CODIGO_VENDA
+
                     FROM dbo.SETA_VENDAS_PRODUTOS WITH (NOLOCK)
+
                     WHERE 1 = 1
+
+                      AND (
+                            @AcessoTodasRedes = 1
+                            OR REDE IN @RedesPermitidas
+                          )
+
                       AND (
                             @Rede IS NULL
                             OR REDE = @Rede
                           )
+
                       AND (
                             @Venda IS NULL
                             OR CODIGO_VENDA = @Venda
                           )
+
                       AND (
                             @CodVendedor IS NULL
                             OR CODVENDEDOR = @CodVendedor
                           )
+
                       AND (
                             @Referencia IS NULL
                             OR REFERENCIA LIKE @Referencia
                           )
+
                       AND (
                             @Apelido IS NULL
                             OR APELIDO LIKE @Apelido
                           )
+
                       AND (
                             @Cliente IS NULL
                             OR CLIENTE LIKE @Cliente
                           )
+
                       AND (
                             @DataVendaInicio IS NULL
                             OR DATA_VENDA >= @DataVendaInicio
                           )
+
                       AND (
                             @DataVendaFim IS NULL
                             OR DATA_VENDA <= @DataVendaFim
                           )
+
                       AND (
                             @LastUpdateInicio IS NULL
                             OR LASTUPDATE_ORIGEM >= @LastUpdateInicio
                           )
+
                       AND (
                             @LastUpdateFim IS NULL
                             OR LASTUPDATE_ORIGEM <= @LastUpdateFim
                           )
+
                     GROUP BY
                         REDE,
                         CODIGO_VENDA
+
                 ) AS TOTAL_VENDAS;
+
 
                 ------------------------------------------------------------
                 -- VENDAS PAGINADAS
@@ -116,56 +168,76 @@ namespace SantaLolla.Api.Repositories
                         CODIGO_VENDA,
                         MAX(DATA_VENDA) AS DATA_VENDA,
                         MAX(LASTUPDATE_ORIGEM) AS LASTUPDATE_ORIGEM
+
                     FROM dbo.SETA_VENDAS_PRODUTOS WITH (NOLOCK)
+
                     WHERE 1 = 1
+
+                      AND (
+                            @AcessoTodasRedes = 1
+                            OR REDE IN @RedesPermitidas
+                          )
+
                       AND (
                             @Rede IS NULL
                             OR REDE = @Rede
                           )
+
                       AND (
                             @Venda IS NULL
                             OR CODIGO_VENDA = @Venda
                           )
+
                       AND (
                             @CodVendedor IS NULL
                             OR CODVENDEDOR = @CodVendedor
                           )
+
                       AND (
                             @Referencia IS NULL
                             OR REFERENCIA LIKE @Referencia
                           )
+
                       AND (
                             @Apelido IS NULL
                             OR APELIDO LIKE @Apelido
                           )
+
                       AND (
                             @Cliente IS NULL
                             OR CLIENTE LIKE @Cliente
                           )
+
                       AND (
                             @DataVendaInicio IS NULL
                             OR DATA_VENDA >= @DataVendaInicio
                           )
+
                       AND (
                             @DataVendaFim IS NULL
                             OR DATA_VENDA <= @DataVendaFim
                           )
+
                       AND (
                             @LastUpdateInicio IS NULL
                             OR LASTUPDATE_ORIGEM >= @LastUpdateInicio
                           )
+
                       AND (
                             @LastUpdateFim IS NULL
                             OR LASTUPDATE_ORIGEM <= @LastUpdateFim
                           )
+
                     GROUP BY
                         REDE,
                         CODIGO_VENDA
+
                     ORDER BY
                         MAX(DATA_VENDA) DESC,
                         MAX(LASTUPDATE_ORIGEM) DESC,
                         REDE,
                         CODIGO_VENDA
+
                     OFFSET @Offset ROWS
                     FETCH NEXT @TamanhoPagina ROWS ONLY
                 )
@@ -227,10 +299,13 @@ namespace SantaLolla.Api.Repositories
                 (
                     SELECT TOP 1
                         L.MARCA
+
                     FROM dbo.SETA_LOJAS L WITH (NOLOCK)
+
                     WHERE L.REDE = P.REDE
                       AND L.CODIGO_EMPRESA = P.CODIGO_EMPRESA
                       AND L.ATIVO = 1
+
                     ORDER BY
                         L.ID_LOJA DESC
                 ) LOJA
@@ -243,10 +318,13 @@ namespace SantaLolla.Api.Repositories
                     SELECT TOP 1
                         V.VENDA_VINCULADA,
                         V.TIPO_OPERACAO
+
                     FROM dbo.SETA_VENDAS_DETALHE V WITH (NOLOCK)
+
                     WHERE V.REDE = P.REDE
                       AND V.CODIGO_EMPRESA = P.CODIGO_EMPRESA
                       AND V.CODIGO_VENDA = P.CODIGO_VENDA
+
                     ORDER BY
                         V.LASTUPDATE_ORIGEM DESC,
                         V.ID_VENDA_DETALHE DESC
@@ -264,6 +342,12 @@ namespace SantaLolla.Api.Repositories
 
             var parametros = new
             {
+                AcessoTodasRedes =
+                    acessoTodasRedes,
+
+                RedesPermitidas =
+                    redesPermitidas,
+
                 Rede =
                     NormalizarTexto(filtro.Rede),
 
@@ -273,9 +357,14 @@ namespace SantaLolla.Api.Repositories
                 CodVendedor =
                     NormalizarTexto(filtro.CodVendedor),
 
-                Referencia = referencia,
-                Apelido = apelido,
-                Cliente = cliente,
+                Referencia =
+                    referencia,
+
+                Apelido =
+                    apelido,
+
+                Cliente =
+                    cliente,
 
                 filtro.DataVendaInicio,
                 filtro.DataVendaFim,
@@ -331,6 +420,7 @@ namespace SantaLolla.Api.Repositories
                         Nome = venda.Nome,
 
                         DataVenda = venda.DataVenda,
+
                         LastUpdateOrigem =
                             venda.LastUpdateOrigem,
 
@@ -349,8 +439,10 @@ namespace SantaLolla.Api.Repositories
                                 {
                                     Referencia = p.Referencia,
                                     Barras = p.Barras,
+
                                     CodigoProduto =
                                         p.CodigoProduto,
+
                                     Tamanho = p.Tamanho,
                                     Quantidade = p.Quantidade,
                                     Unitario = p.Unitario,

@@ -1,4 +1,5 @@
 using Dapper;
+using Microsoft.AspNetCore.Http;
 using SantaLolla.Api.Data;
 using SantaLolla.Api.Models.PagedResponse;
 using SantaLolla.Api.Models.Vendas;
@@ -10,11 +11,14 @@ namespace SantaLolla.Api.Repositories
     public class VendaRepository : IVendaRepository
     {
         private readonly SqlConnectionFactory _connectionFactory;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public VendaRepository(
-            SqlConnectionFactory connectionFactory)
+            SqlConnectionFactory connectionFactory,
+            IHttpContextAccessor httpContextAccessor)
         {
             _connectionFactory = connectionFactory;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<PagedResponse<VendaResponse>> ListarAsync(
@@ -33,6 +37,33 @@ namespace SantaLolla.Api.Repositories
             if (filtro.TamanhoPagina > 5000)
             {
                 filtro.TamanhoPagina = 5000;
+            }
+
+            // -----------------------------------------------------
+            // ACESSO ÀS REDES DO TERCEIRO
+            // -----------------------------------------------------
+            var httpContext =
+                _httpContextAccessor.HttpContext;
+
+            var acessoTodasRedes =
+                httpContext?.Items["AcessoTodasRedes"] is bool acesso
+                    && acesso;
+
+            var redesPermitidas =
+                httpContext?.Items["RedesPermitidas"] as List<string>
+                ?? new List<string>();
+
+            // Se o terceiro é restrito e não possui nenhuma rede
+            // cadastrada, não pode visualizar nenhum registro.
+            if (!acessoTodasRedes &&
+                redesPermitidas.Count == 0)
+            {
+                return PagedResponse<VendaResponse>.Create(
+                    new List<VendaResponse>(),
+                    0,
+                    filtro.Pagina,
+                    filtro.TamanhoPagina
+                );
             }
 
             var offset =
@@ -59,6 +90,10 @@ namespace SantaLolla.Api.Repositories
                 FROM dbo.SETA_VENDAS_DETALHE V WITH (NOLOCK)
                 WHERE
                     (
+                        @AcessoTodasRedes = 1
+                        OR V.REDE IN @RedesPermitidas
+                    )
+                    AND (
                         @DataInicio IS NULL
                         OR V.DATA_VENDA >= @DataInicio
                     )
@@ -104,6 +139,10 @@ namespace SantaLolla.Api.Repositories
                 FROM dbo.SETA_VENDAS_DETALHE V WITH (NOLOCK)
                 WHERE
                     (
+                        @AcessoTodasRedes = 1
+                        OR V.REDE IN @RedesPermitidas
+                    )
+                    AND (
                         @DataInicio IS NULL
                         OR V.DATA_VENDA >= @DataInicio
                     )
@@ -239,7 +278,7 @@ namespace SantaLolla.Api.Repositories
                     P.PAGAMENTO AS Pagamento,
 
                     P.VALOR AS Valor,
-                    
+
                     P.NUMERO_PARCELA AS NumeroParcela,
                     P.TOTAL_PARCELAS AS TotalParcelas,
 
@@ -285,6 +324,12 @@ namespace SantaLolla.Api.Repositories
 
             var parametros = new
             {
+                AcessoTodasRedes =
+                    acessoTodasRedes,
+
+                RedesPermitidas =
+                    redesPermitidas,
+
                 filtro.DataInicio,
                 filtro.DataFim,
                 filtro.LastUpdateInicio,

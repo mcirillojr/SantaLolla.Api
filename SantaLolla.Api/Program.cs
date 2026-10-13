@@ -83,6 +83,7 @@ builder.Services.AddScoped<IClienteVarejoRepository, ClienteVarejoRepository>();
 builder.Services.AddScoped<IVendaProdutoRepository, VendaProdutoRepository>();
 builder.Services.AddScoped<IApiLogRepository, ApiLogRepository>();
 builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
+builder.Services.AddHttpContextAccessor();
 
 // Services
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -123,6 +124,7 @@ builder.Services.AddAuthorization();
 
 // Worker em background
 builder.Services.AddHostedService<SantaLollaWorker>();
+
 
 var app = builder.Build();
 

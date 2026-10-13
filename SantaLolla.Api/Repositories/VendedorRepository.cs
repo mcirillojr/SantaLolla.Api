@@ -1,4 +1,5 @@
 using Dapper;
+using Microsoft.AspNetCore.Http;
 using SantaLolla.Api.Data;
 using SantaLolla.Api.Models.PagedResponse;
 using SantaLolla.Api.Models.Vendedores;
@@ -9,11 +10,14 @@ namespace SantaLolla.Api.Repositories
     public class VendedorRepository : IVendedorRepository
     {
         private readonly SqlConnectionFactory _connectionFactory;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public VendedorRepository(
-            SqlConnectionFactory connectionFactory)
+            SqlConnectionFactory connectionFactory,
+            IHttpContextAccessor httpContextAccessor)
         {
             _connectionFactory = connectionFactory;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<PagedResponse<VendedorResponse>> ListarAsync(
@@ -34,31 +38,71 @@ namespace SantaLolla.Api.Repositories
                 filtro.TamanhoPagina = 5000;
             }
 
+            // -----------------------------------------------------
+            // ACESSO ÀS REDES DO TERCEIRO
+            // -----------------------------------------------------
+            var httpContext =
+                _httpContextAccessor.HttpContext;
+
+            var acessoTodasRedes =
+                httpContext?.Items["AcessoTodasRedes"] is bool acesso
+                    && acesso;
+
+            var redesPermitidas =
+                httpContext?.Items["RedesPermitidas"] as List<string>
+                ?? new List<string>();
+
+            // Se o terceiro for restrito e não possuir
+            // nenhuma rede cadastrada, não retorna vendedores.
+            if (!acessoTodasRedes &&
+                redesPermitidas.Count == 0)
+            {
+                return PagedResponse<VendedorResponse>.Create(
+                    new List<VendedorResponse>(),
+                    0,
+                    filtro.Pagina,
+                    filtro.TamanhoPagina
+                );
+            }
+
             var offset =
                 (filtro.Pagina - 1) *
                 filtro.TamanhoPagina;
 
             const string sql = @"
+                ------------------------------------------------------------
+                -- TOTAL DE REGISTROS
+                ------------------------------------------------------------
                 SELECT
                     COUNT(1)
                 FROM dbo.SETA_VENDEDORES V WITH (NOLOCK)
                 WHERE ISNULL(V.ATIVO, 1) = 1
+
+                  AND (
+                        @AcessoTodasRedes = 1
+                        OR V.REDE IN @RedesPermitidas
+                      )
+
                   AND (
                         V.DEMISSAO IS NULL
                         OR V.DEMISSAO > CAST(GETDATE() AS DATE)
                       )
+
                   AND (
                         @LastUpdateInicio IS NULL
                         OR V.LASTUPDATE_ORIGEM >= @LastUpdateInicio
                       )
+
                   AND (
                         @LastUpdateFim IS NULL
                         OR V.LASTUPDATE_ORIGEM <= @LastUpdateFim
                       )
+
                   AND (
                         @Rede IS NULL
                         OR V.REDE = @Rede
                       )
+
                   AND (
                         @CodigoLoja IS NULL
                         OR ISNULL(
@@ -66,11 +110,16 @@ namespace SantaLolla.Api.Repositories
                             V.EMPRESA
                         ) = @CodigoLoja
                       )
+
                   AND (
                         @CodigoVendedor IS NULL
                         OR V.CODVENDEDOR = @CodigoVendedor
                       );
 
+
+                ------------------------------------------------------------
+                -- DADOS DOS VENDEDORES
+                ------------------------------------------------------------
                 SELECT
                     V.REDE AS Rede,
 
@@ -128,22 +177,32 @@ namespace SantaLolla.Api.Repositories
                    AND L.ATIVO = 1
 
                 WHERE ISNULL(V.ATIVO, 1) = 1
+
+                  AND (
+                        @AcessoTodasRedes = 1
+                        OR V.REDE IN @RedesPermitidas
+                      )
+
                   AND (
                         V.DEMISSAO IS NULL
                         OR V.DEMISSAO > CAST(GETDATE() AS DATE)
                       )
+
                   AND (
                         @LastUpdateInicio IS NULL
                         OR V.LASTUPDATE_ORIGEM >= @LastUpdateInicio
                       )
+
                   AND (
                         @LastUpdateFim IS NULL
                         OR V.LASTUPDATE_ORIGEM <= @LastUpdateFim
                       )
+
                   AND (
                         @Rede IS NULL
                         OR V.REDE = @Rede
                       )
+
                   AND (
                         @CodigoLoja IS NULL
                         OR ISNULL(
@@ -151,6 +210,7 @@ namespace SantaLolla.Api.Repositories
                             V.EMPRESA
                         ) = @CodigoLoja
                       )
+
                   AND (
                         @CodigoVendedor IS NULL
                         OR V.CODVENDEDOR = @CodigoVendedor
@@ -170,11 +230,18 @@ namespace SantaLolla.Api.Repositories
 
             var parametros = new
             {
+                AcessoTodasRedes =
+                    acessoTodasRedes,
+
+                RedesPermitidas =
+                    redesPermitidas,
+
                 filtro.LastUpdateInicio,
                 filtro.LastUpdateFim,
                 filtro.Rede,
                 filtro.CodigoLoja,
                 filtro.CodigoVendedor,
+
                 Offset = offset,
                 filtro.TamanhoPagina
             };

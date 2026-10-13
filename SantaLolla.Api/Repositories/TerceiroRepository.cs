@@ -83,6 +83,65 @@ namespace SantaLolla.Api.Repositories
 
             return permitido.HasValue;
         }
+        public async Task<TerceiroAcessoRede?> ObterAcessoRedesAsync(
+        long idTerceiro)
+        {
+            const string sql = @"
+        SELECT
+            ID_TERCEIRO AS IdTerceiro,
+            ACESSO_TODAS_REDES AS AcessoTodasRedes
+        FROM dbo.SETA_API_TERCEIROS WITH (NOLOCK)
+        WHERE ID_TERCEIRO = @IdTerceiro
+          AND ATIVO = 1;
 
+        SELECT
+            REDE
+        FROM dbo.SETA_API_TERCEIROS_REDES WITH (NOLOCK)
+        WHERE ID_TERCEIRO = @IdTerceiro
+          AND ATIVO = 1
+        ORDER BY REDE;
+    ";
+
+            using var connection =
+                _connectionFactory.CreateConnection();
+
+            using var resultado =
+                await connection.QueryMultipleAsync(
+                    sql,
+                    new
+                    {
+                        IdTerceiro = idTerceiro
+                    }
+                );
+
+            var terceiro =
+                await resultado.ReadFirstOrDefaultAsync<TerceiroAcessoRedeDbResult>();
+
+            if (terceiro == null)
+            {
+                return null;
+            }
+
+            var redes =
+                (await resultado.ReadAsync<string>())
+                .ToList();
+
+            return new TerceiroAcessoRede
+            {
+                AcessoTodasRedes =
+                    terceiro.AcessoTodasRedes,
+
+                RedesPermitidas =
+                    redes
+            };
+        }
+        private sealed class TerceiroAcessoRedeDbResult
+        {
+            public long IdTerceiro { get; set; }
+
+            public bool AcessoTodasRedes { get; set; }
+        }
     }
-}
+
+ }
+

@@ -4,14 +4,22 @@ namespace SantaLolla.Api.Repositories.Interfaces
 {
     public interface ITerceiroRepository
     {
-        Task<TerceiroApi?> ObterPorClientIdAsync(string clientId);
+        Task<TerceiroApi?> ObterPorClientIdAsync(
+            string clientId
+        );
 
-        Task AtualizarUltimoAcessoAsync(long idTerceiro);
+        Task AtualizarUltimoAcessoAsync(
+            long idTerceiro
+        );
 
         Task<bool> TerceiroTemPermissaoAsync(
             long idTerceiro,
             string endpoint,
             string metodoHttp
+        );
+
+        Task<TerceiroAcessoRede?> ObterAcessoRedesAsync(
+            long idTerceiro
         );
     }
 }
